@@ -1,5 +1,5 @@
 ##
-## Copyright 2003-2011 ANSYS, Inc. 
+## Copyright 2003-2008 ANSYS, Inc. 
 ## All Rights Reserved  
 ##
 
@@ -13,17 +13,16 @@
 # sccs id: %W% %G%
 #----------------------------------------------------------------------#
 SHELL= /bin/sh
-FLUENT_ARCH= lnamd64
+FLUENT_ARCH= unknown_arch
 DIR= $(FLUENT_ARCH)/[23]*
-SRC= ../../src/*.{c,h,cpp,hpp} ../../src/makefile ../../src/user.udf
+SRC= ../../src/*.[ch] ../../src/makefile
 
 all:
 	for d in $(DIR); do \
 	  ( \
 	    cd $$d; \
-		rm -rf *.{c,h,cpp,hpp}; \
 	    for f in $(SRC); do \
-	      if [ -f $$f -a ! -f `basename $$f` ]; then \
+	      if [ ! -f `basename $$f` ]; then \
 	        echo "# linking to" $$f "in" $$d; \
 	        ln -s $$f .; \
 	      fi; \
@@ -48,9 +47,7 @@ all:
 clean:
 	for d in $(DIR); do \
 	  ( \
-            if [ -f "$$d/makefile" ]; then \
-	       cd $$d; \
-	       make clean; \
-	    fi;\
+	    cd $$d; \
+	    make clean; \
 	  ) \
 	done
