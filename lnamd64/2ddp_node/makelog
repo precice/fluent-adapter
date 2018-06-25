@@ -1,0 +1,14 @@
+make[1]: Entering directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'
+# Generating udf_names.c because of makefile fsi_udf.c fsi.c
+make[2]: Entering directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'
+make libudf.so "CFLAGS=-D_lnamd64 -D_GNU_SOURCE -fpic -shared -ansi -Wall -O -DPTR_RESTRICT=   " "LDFLAGS=-shared -lm"
+make[3]: Entering directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'
+# Linking libudf.so because of makefile udf_names.c
+cc -shared -lm udf_names.o fsi_udf.o fsi.o ../libprecice.so  bhfehjroj/usr/lib64/libpython2.7.so -o libudf.so
+cc: Fehler: bhfehjroj/usr/lib64/libpython2.7.so: Datei oder Verzeichnis nicht gefunden
+make[3]: *** [libudf.so] Fehler 1
+make[3]: Leaving directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'
+make[2]: *** [lnamd64] Fehler 2
+make[2]: Leaving directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'
+make[1]: *** [default] Fehler 2
+make[1]: Leaving directory `/home/richysudo/Richy/FP/fluent_adapter/fluent-adapter-4/fluent-adapter/lnamd64/2ddp_node'

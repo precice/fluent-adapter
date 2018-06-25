@@ -1,5 +1,5 @@
 ##
-## Copyright 2003-2011 ANSYS, Inc. 
+## Copyright 2003-2008 ANSYS, Inc. 
 ## All Rights Reserved  
 ##
 
@@ -11,52 +11,27 @@
 #----------------------------------------------------------------------#
 # User modifiable section.
 #----------------------------------------------------------------------#
-include user.udf
+SOURCES=fsi.c fsi_udf.c
+FLUENT_INC=/home/software/ansys/ansys_121_64bit/v121/fluent
 
 # Precompiled User Object files (for example .o files from .f sources)
-USER_OBJECTS=../libprecice.lib  /usr/lib64/libpython2.7.so
+USER_OBJECTS=../libprecice.a ../libpython2.7.so
 
 #----------------------------------------------------------------------#
 # Build targets (do not modify below this line).
 #----------------------------------------------------------------------#
-CC=cc
-SHELL=/bin/sh
-RELEASE=18.2.0
-VERSION=`basename "\`pwd\`"`
-ARCH=`expr "\`pwd\`" : '.*/\(.*\)/[23].*'`
+CC= gcc
+SHELL= /bin/sh
+RELEASE= 12.1.2
+VERSION= `basename "\`pwd\`"`
+ARCH= `expr "\`pwd\`" : '.*/\(.*\)/[23].*'`
 ARCHC=$(ARCH)
-TARGET=libudf.so
-UDFDATA=udf_names.c
-SOURCES=   $(CSOURCES) $(HSOURCES)
-OBJS1 = $(CSOURCES:.cpp=.o)
-OBJS2 = $(OBJS1:.c=.o)
-OBJECTS= $(UDFDATA:.c=.o) $(OBJS2)
+TARGET= libudf.so
+UDFDATA= udf_names.c
+OBJECTS= $(UDFDATA:.c=.o) $(SOURCES:.c=.o)
 
 INCLUDES= -I$(FLUENT_INC)/fluent$(RELEASE)/$(ARCH)/$(VERSION) \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/main \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/addon-wrapper \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/io \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/species \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/pbns \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/numerics \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/sphysics \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/storage \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/mphase \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/bc \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/models \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/material \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/amg \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/util \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/mesh \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/udf \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/ht \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/dx \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/turbulence \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/parallel \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/etc \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/ue \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/dpm \
-          -I$(FLUENT_INC)/fluent$(RELEASE)/src/dbns \
+          -I$(FLUENT_INC)/fluent$(RELEASE)/src \
           -I$(FLUENT_INC)/fluent$(RELEASE)/cortex/src \
           -I$(FLUENT_INC)/fluent$(RELEASE)/client/src \
           -I$(FLUENT_INC)/fluent$(RELEASE)/tgrid/src \
@@ -81,10 +56,9 @@ CFLAGS_ULTRA=		-KPIC -fast -v
 CFLAGS_ULTRA_64=	-KPIC -fast -v -xarch=v9
 CFLAGS_FUJITSU_PP=	-Kfast_GP=2,prefetch,V9
 CFLAGS_LNX86=		-fpic -shared -ansi -Wall -m32 -O	# options for CC= gcc
-CFLAGS_LNAMD64=         -D_lnamd64 -D_GNU_SOURCE -fpic -shared -ansi -Wall -O -DPTR_RESTRICT=   # options for CC= gcc
-CFLAGS_LOP64=           -D_lop64 -D_GNU_SOURCE -fpic -shared -ansi -Wall -O -DPTR_RESTRICT=	# options for CC= gcc
+CFLAGS_LNAMD64=         -fPIC -shared -ansi -Wall -O -DPTR_RESTRICT=	# options for CC= gcc
 CFLAGS_LNIA64=		-fpic -shared -ansi -Wall -O -DPTR_RESTRICT=    # gcc options
-CFLAGS_GCC=		-fpic -shared -ansi -Wall -O -DPTR_RESTRICT=
+CFLAGS_GCC=		-fPIC -shared -ansi -Wall -O -DPTR_RESTRICT=
 CFLAGS_GCC64=		-fpic -shared -ansi -Wall -O -m64 -DPTR_RESTRICT= 
 
 LDFLAGS_ALPHA=		-shared -lm
@@ -104,43 +78,32 @@ LDFLAGS_ULTRA_64=	-G -lm
 LDFLAGS_FUJITSU_PP=	-G -lm
 LDFLAGS_LNX86=		-shared -lm -m elf_i386
 LDFLAGS_LNAMD64=	-shared -lm
-LDFLAGS_LOP64=	-shared -lm
 LDFLAGS_LNIA64=		-shared -lm
 LDFLAGS_GCC=		-shared -lm 
 LDFLAGS_GCC64=		-shared -lm
 
-ifeq "$(GPU_SUPPORT)" "on"
-INCLUDES+= -I$(FLUENT_INC)/fluent$(RELEASE)/multiport/gpu_wrapper/include
-LDFLAGS_LNAMD64+= -L$(FLUENT_INC)/fluent$(RELEASE)/multiport/gpu_wrapper/$(ARCH)/stub -lOpenCL
-endif
-
 .c.o:
 	@echo "# Compiling $@ because of $?"
 	@rm -f $*.o
-	$(CC) $(CFLAGS) $(HOST_FLAGS) $(INCLUDES) -c $*.c
-
-.cpp.o:
-	@echo "# Compiling $@ because of $?"
-	@rm -f $*.o
-	$(CC) $(CFLAGS) $(HOST_FLAGS) $(INCLUDES) -c $*.cpp
+	$(CC) $(CFLAGS) $(INCLUDES) -c $*.c
 
 default: $(UDFDATA)
 	@$(MAKE) $(ARCHC)	
 
-$(TARGET): makefile user.udf $(UDFDATA) $(OBJECTS)
+$(TARGET): makefile $(UDFDATA) $(OBJECTS)
 	@echo "# Linking $@ because of $?"
-	$(CC) $(LDFLAGS) $(OBJECTS) $(USER_OBJECTS) -o $@
+	$(LD) $(LDFLAGS) $(OBJECTS) $(USER_OBJECTS) -o $@
 
-$(UDFDATA): makefile $(CSOURCES)
+$(UDFDATA): makefile $(SOURCES)
 	@echo '# Generating $@ because of $?'
 	@echo '/* This file generated automatically. */' > $@
 	@echo '/*          Do not modify.            */' >> $@
 	@echo '#include "udf.h"' >> $@
 	@echo '#include "prop.h"' >> $@
 	@echo '#include "dpm.h"' >> $@
-	@sed -n 's/^ *\(DEFINE_[_A-Z]* *([^{]*)\)[{ ]*/extern \1;/p' $(CSOURCES) >> $@
+	@sed -n 's/^ *\(DEFINE_[_A-Z]* *([^{]*)\)[{ ]*/extern \1;/p' $(SOURCES) >> $@
 	@echo 'UDF_Data udf_data[] = {' >> $@
-	@sed -n 's/^ *DEFINE_\([_A-Z]*\) *( *\([_a-zA-Z0-9]*\)[^{]*)[{ ]*/\{"\2", (void (*)(void))\2, UDF_TYPE_\1\},/p' $(CSOURCES) >> $@
+	@sed -n 's/^ *DEFINE_\([_A-Z]*\) *( *\([_a-zA-Z0-9]*\)[^{]*)[{ ]*/\{"\2", (void (*)())\2, UDF_TYPE_\1\},/p' $(SOURCES) >> $@
 	@echo '};' >> $@
 	@echo 'int n_udf_data = sizeof(udf_data)/sizeof(UDF_Data);' >> $@
 	@echo '#include "version.h"' >> $@
@@ -150,11 +113,6 @@ $(UDFDATA): makefile $(CSOURCES)
 	@echo '  *minor = RampantReleaseMinor;' >> $@
 	@echo '  *revision = RampantReleaseRevision;' >> $@
 	@echo '}' >> $@
-
-udf_names.o:
-	@echo "# Compiling $@ because of $?"
-	@rm -f $*.o
-	$(CC) $(CFLAGS) $(INCLUDES) -c $*.c
 
 alpha:
 	$(MAKE) $(TARGET) "CFLAGS=$(CFLAGS_ALPHA)" "LD=cc" "LDFLAGS=$(LDFLAGS_ALPHA)"
@@ -205,10 +163,7 @@ lnx86 lnx86_rh8:
 	$(MAKE) $(TARGET) "CFLAGS=$(CFLAGS_LNX86)" "LDFLAGS=$(LDFLAGS_LNX86)"
 
 lnamd64:
-	$(MAKE) $(TARGET) "CFLAGS=$(CFLAGS_LNAMD64)" "LDFLAGS=$(LDFLAGS_LNAMD64)"
-
-lop64:
-	$(MAKE) $(TARGET) "CFLAGS=$(CFLAGS_LOP64)" "LDFLAGS=$(LDFLAGS_LOP64)"
+	$(MAKE) $(TARGET) LD=mpicxx.mpich2 "CFLAGS=$(CFLAGS_LNAMD64)" "LDFLAGS=$(LDFLAGS_LNAMD64)"
 
 lnia64:
 	$(MAKE) $(TARGET) "CFLAGS=$(CFLAGS_LNIA64)" "LDFLAGS=$(LDFLAGS_LNIA64)" "LD=$(CC)"
@@ -229,5 +184,3 @@ gcc64:
 
 clean:
 	@rm -f $(TARGET) $(UDFDATA) $(OBJECTS)
-
-$(OBJECTS): $(HSOURCES)
