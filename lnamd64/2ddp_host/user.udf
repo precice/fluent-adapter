@@ -1,5 +1,0 @@
-CSOURCES= fsi_udf.c fsi.c
-HSOURCES=
-FLUENT_INC=/ansys_inc/v182/fluent
-HOST_FLAGS=-DUSE_UDF_HOST_DUMMY
-GPU_SUPPORT=off
