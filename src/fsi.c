@@ -1,6 +1,8 @@
 #include "fsi.h"
-#include "../../../../../src/precice/adapters/c/SolverInterfaceC.h"
-#include "../../../../../src/precice/adapters/c/Constants.h"
+/*include "/home/richysudo/Richy/FP/precice/src/precice/adapters/c/SolverInterfaceC.h"*/ /*specified path to precice by richy*/
+#include "SolverInterfaceC.h"
+/*include "/home/richysudo/Richy/FP/precice/src/precice/adapters/c/Constants.h"*/
+#include "Constants.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -93,16 +95,20 @@ void fsi_init(Domain* domain)
   count_dynamic_threads();
   #endif /* ! RP_HOST */
 
-  if (precicec_isActionRequired(precicec_actionReadSimulationCheckpoint())){
-    #if !RP_NODE /* HOST or SERIAL */
+ /* if (precicec_isActionRequired(precicec_actionReadSimulationCheckpoint())){
+    #if !RP_NODE */   /* HOST or SERIAL *//*
     Message("  (%d) Reading simulation checkpoint required\n", myid);
     RP_Set_Integer("udf/checkpoint", BOOL_TRUE);
-    #endif /* !RP_NODE */
+    #endif *//* !RP_NODE *//*
     did_gather_write_positions = BOOL_TRUE;
     did_gather_read_positions = BOOL_TRUE;
-    skip_grid_motion = BOOL_FALSE; /* Read local displacements not stored in fluent checkpoint */
+    skip_grid_motion = BOOL_FALSE; *//* Read local displacements not stored in fluent checkpoint *//*
     precicec_fulfilledAction(precicec_actionReadSimulationCheckpoint());
   }
+EDIT: precicec_actionWriteSimulationCheckpoint() does not exist anymore.
+	
+
+*/
 
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
     Message("  (%d) Implicit coupling\n", myid);
@@ -180,19 +186,24 @@ void fsi_write_and_advance()
   }
   #endif /* !RP_NODE */
 
-  if (precicec_isActionRequired(precicec_actionWriteSimulationCheckpoint())){
+ /* if (precicec_isActionRequired(precicec_actionWriteSimulationCheckpoint())){
     precicec_fulfilledAction(precicec_actionWriteSimulationCheckpoint());
     require_create_checkpoint = BOOL_TRUE;
     #if !RP_NODE
     Message("  (%d) Writing simulation checkpoint required\n", myid);
     RP_Set_Integer("udf/checkpoint", BOOL_TRUE);
-    #endif /* !RP_NODE */
+    #endif *//* !RP_NODE *//*
   }
   #if !RP_NODE
   else {
     RP_Set_Integer("udf/checkpoint", BOOL_FALSE);
   }
-  #endif /* !RP_NODE */
+  #endif *//* !RP_NODE 
+  
+This was deleted by Richard Hertrich since precicec_actionWriteSimulationCheckpoint() does not 
+exist anymore.
+
+*/
 
   printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
 }
@@ -247,7 +258,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
   #endif /* !RP_HOST */
 
-  precicec_mapReadData(meshID); /* Collective call necessary */
+  /*precicec_mapReadData(meshID); *//* Collective call necessary EDIT by RH: is automatically done now   */
 
   #if !RP_HOST /* Serial or node */
   read_displacements(dt);
@@ -478,7 +489,7 @@ void gather_write_positions()
       begin_f_loop (face, face_thread){
         if (PRINCIPAL_FACE_P(face,face_thread)){
           F_CENTROID(center, face, face_thread);
-          force_indices[i] = precicec_setWritePosition(meshID, center);
+          force_indices[i] = precicec_setMeshVertex(meshID, center);
           F_UDMI(face, face_thread, 0) = force_indices[i];
           i++;
         }
@@ -547,7 +558,8 @@ void gather_read_positions(Dynamic_Thread* dt)
             printf("  (%d) initial coord %.16E\n", myid, initial_coords[array_index*ND_ND]);
             fflush(stdout);
           }*/
-          node_index = precicec_setReadPosition(meshID, coords);
+          node_index = precicec_setMeshVertex(meshID, coords ); /* changed from 
+		setReadPosition to setMeshVertex*/
           displ_indices[array_index] = node_index;
           array_index++;
         }
@@ -567,7 +579,8 @@ void gather_read_positions(Dynamic_Thread* dt)
 
 void read_displacements(Dynamic_Thread* dt)
 {
-  int displID = precicec_getDataID("Displacements");
+  int meshID=precicec_getMeshID("WetSurface");/*added */
+  int displID = precicec_getDataID("Displacements", meshID); /* EDIT: meshID as additional parameter */
   int offset = 0;
   int i = 0, n = 0, dim = 0;
   Thread* face_thread  = DT_THREAD(dt);
@@ -623,7 +636,8 @@ void read_displacements(Dynamic_Thread* dt)
 
 void write_forces()
 {
-  int forceID = precicec_getDataID("Forces");
+  int meshID=precicec_getMeshID("WetSurface");/*added */
+  int forceID = precicec_getDataID("Forces", meshID); /*added meshID as argument*/
   int i=0, j=0;
   Domain* domain = NULL;
   Dynamic_Thread* dynamic_thread = NULL;
@@ -785,8 +799,8 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
   Node* node;
   face_t face;
   int meshID = precicec_getMeshID("WetSurface");
-  int all_size = precicec_getReadNodesSize(meshID);
-  int displID = precicec_getDataID("Displacements");
+  int all_size = 100;/*precicec_getReadNodesSize(meshID);    TODO: read mesh size from Fluent, 100 is just a dummy value!*/
+  int displID = precicec_getDataID("Displacements", meshID);
   double* new_coords = (double*) malloc(thread_new_size * ND_ND * sizeof(double));
   int* new_indices = (int*) malloc(thread_new_size * sizeof(double));
   double* all_coords = (double*) malloc(all_size * ND_ND * sizeof(double));
@@ -802,7 +816,8 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
     all_indices[i] = i;
   }
   precicec_readBlockVectorData(displID, all_size, all_indices, all_displ);
-  precicec_getReadPositions(meshID, all_size, all_indices, all_coords);
+  /*precicec_getReadPositions(meshID, all_size, all_indices, all_coords);   
+	EDIT: function does not exist anymore*/
   for (i=0; i < all_size*ND_ND; i++){
     if (i < all_size*ND_ND) {
       printf("  (%d) coods %.16E\n", myid, all_coords[i]);
