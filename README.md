@@ -1,12 +1,9 @@
 # preCICE-adapter for the CFD code ANSYS Fluent
-Developed by Bernhard Gatzhammer
+Developed by Bernhard Gatzhammer Update-Try to newer Fluent and Precice Versions
 
 1. How to build the Fluent-preCICE adapter: 
-* Go to tools/adapters/fluent
-* Create a subdirectory lnamd64/2ddp/ for serial execution
-    and for parallel execution add a /2ddp_host/ and /2ddp_node/.
-* Put the libraries of preCICE and python2.7 (libpython2.7.so) into the lnamd64 folder.
-* Adapt src/makefile line 14 "SOURCES=...": There are several main udf files
+* Put the library of preCICE (libprecice.so) into the lnamd64 folder.
+* Adapt lnamd64/2ddp_host/user.udf line 1 "CSOURCES=...": There are several main udf files
     - fsi_udf.c: For FSI simulations. Needs fsi.c.
     - wave_profile_udf.c: For wave simulations with inflow profile. Needs 
       wave_profile.c.
@@ -15,6 +12,8 @@ Developed by Bernhard Gatzhammer
     - fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and 
       wave_profile.c.
     The variable SOURCES needs one one main udf file and the correspoding .c files.
+    
+* Adapt the path of the python library in /src/makefile line 19
 * Type: make "FLUENT_ARCH=lnamd64" to start the build. Add a "clean" to clean it.
 
 --------------------------------------------------------------------------------
@@ -37,6 +36,9 @@ Developed by Bernhard Gatzhammer
 - In Fluent, go to top menu Define->User Defined->Functions...->Manage... and 
   load the libudf folder. The names of the udf functions should appear in the 
   Fluent command line window. (only necessary  if not yet included in the .cas file)
+  
+  THIS IS HOW FAR IT WORKS
+  
 - Define a function hook at Initialization. (see udf manueal, define -> user defined -> function hooks)
 - Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; adds one additional double to each face for precice face ids)
 
