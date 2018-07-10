@@ -16,7 +16,7 @@ include user.udf
 # Precompiled User Object files (for example .o files from .f sources)
 # Path of the python lib may vary and needs to be adapted
 # would also be nice to search for it automatically
-USER_OBJECTS=../libprecice.so  /usr/lib64/libpython2.7.so
+USER_OBJECTS=$(PRECICE_ROOT)/build/last/libprecice.so  /usr/lib64/libpython2.7.so
 
 #----------------------------------------------------------------------#
 # Build targets (do not modify below this line).
