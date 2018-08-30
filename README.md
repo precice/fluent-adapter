@@ -1,3 +1,5 @@
+**WARNING:** Currently this adapter is under construction. This means that it does not work with recent preCICE versions and we do not recommend using this adapter. If you want to contribute [Update fluent adapter for compatibility with recent preCICE versions #1](https://github.com/precice/fluent-adapter/issues/1) is a good starting point.
+
 # preCICE-adapter for the CFD code ANSYS Fluent
 Developed by Bernhard Gatzhammer
 
