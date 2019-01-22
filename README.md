@@ -20,19 +20,18 @@ Developed by Bernhard Gatzhammer Update-Try to newer Fluent and Precice Versions
 
 2. Installing and Starting Fluent on Ubuntu machine
 
-2.1 How to install Fluent 
-- This installation procedure has been tested for ANSYS 19.1 and Ubuntu 16.04 LTS
-- The following installation guide for an earlier Ansys version works for the above configuration:
+2.1 How to install Fluent (ANSYS V19.1 on Linux Ubuntu 16.04 LTS) 
+* The following installation guide for an earlier Ansys version works for the above configuration:
   <https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html>
-- After the installation you basically have two programs installed: Fluent and Ansys Workbench:
+* After the installation you have two packages installed: Fluent and Ansys Workbench:
   Fluent is the CFD-solver and the workbench can be used for creating
-  geometries, meshing and creating zones for boundary conditions.
-- Fluent is started by typing *fluent* in *ansys\_inc/v191/fluent/bin*
-- Workbench is started by typing *runwb2* in
+  geometries, meshing and creating zones for boundary conditions
+* Fluent is started by typing *fluent* in *ansys\_inc/v191/fluent/bin*
+* Workbench is started by typing *runwb2* in
     *ansys_inc/v191/Framework/bin/Linux64*
-- Consider adding the folders into .bashrc to start it without the full
+* Consider adding the folders into .bashrc to start it without the full
   path from anywhere.
-- Fluent can also be started from the workbench GUI (Choose Fluid-Flow
+* Fluent can also be started from the workbench GUI (Choose Fluid-Flow
   (Fluent), double-click on setup opens fluent)
 
 2.2 How to start Fluent with GUI
