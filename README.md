@@ -1,7 +1,7 @@
 # preCICE-adapter for the CFD code ANSYS Fluent
 *Developed by Bernhard Gatzhammer Update-Try to newer Fluent and Precice Versions*
 
-1. How to build the Fluent-preCICE adapter: 
+## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
   * Adapt lnamd64/2ddp_host/user.udf line 1 "CSOURCES=...": There are several main udf files
       - fsi_udf.c: For FSI simulations. Needs fsi.c.
@@ -18,9 +18,9 @@
 
 --------------------------------------------------------------------------------
 
-2. Installing and Starting Fluent on Ubuntu machine
+## 2. Installing and Starting Fluent on Ubuntu machine
 
-  2.1 How to install Fluent - **ANSYS V19.1 on Linux Ubuntu 16.04 LTS** 
+  ### 2.1 How to install Fluent - **ANSYS V19.1 on Linux Ubuntu 16.04 LTS** 
   * The following installation guide for an earlier Ansys version works for the above configuration:
     <https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html>
   * After the installation you have two packages installed: Fluent and Ansys Workbench:
@@ -34,12 +34,12 @@
   * Fluent can also be started from the workbench GUI (Choose Fluid-Flow
     (Fluent), double-click on setup opens fluent)
 
-  2.2 How to start Fluent with GUI
+  ### 2.2 How to start Fluent with GUI
   * start the binary "fluent" from your simulation folder
   * set double precision, processing options (serial or parallel) and the dimension
     (for parallel select also "show more", "parallel settings", "mpi types" -> open mpi
 
-  2.3 How to start Fluent without GUI
+  ### 2.3 How to start Fluent without GUI
   * serial:   fluent 2ddp -g < steer-fluent.txt
   * parallel: fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt
     (-t4 sets 4 processes for computations)
@@ -47,7 +47,7 @@
 
 --------------------------------------------------------------------------------
 
-3. Preparing a Fluent .cas file for UDF function usage:
+## 3. Preparing a Fluent .cas file for UDF function usage:
   * Copy the lnamd64 udf lib folder to the simulation folder into /libudf/
   * Start Fluent and open the .msh or .cas file to be used
   * In Fluent, go to top menu Define->User Defined->Functions...->Manage... and 
@@ -62,7 +62,7 @@
 
 --------------------------------------------------------------------------------
 
-4. Preparing a Fluent .cas file for FSI simulations
+## 4. Preparing a Fluent .cas file for FSI simulations
 
   * Perform the steps in 1.,2. and 3.
   * Set a user defined mesh motion according to function "gridmotions".
@@ -73,7 +73,7 @@
 
 --------------------------------------------------------------------------------
 
-5. Preparing a Fluent .cas file for Wave simulations
+## 5. Preparing a Fluent .cas file for Wave simulations
 
 Go through the menus on the left and perform the following steps:
   * General: Set transient simulation and gravity in y-direction = -9.81
