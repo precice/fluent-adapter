@@ -12,8 +12,11 @@
       - fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and 
         wave_profile.c.
       The variable SOURCES needs one one main udf file and the correspoding .c files.
-    
+
+  * Adapt lnamd64/2ddp_host/user.udf lin 3 "FLUENT_INC = ..." to the fluent installation
+    folder which will be of the type ./ansys_inc/v191/fluent  
   * Adapt the path of the python library in /src/makefile line 19
+  * Update the Ansys RELEASE version in /src/makefile line 26
   * Type: make "FLUENT_ARCH=lnamd64" to start the build. Add a "clean" to clean it.
 
 --------------------------------------------------------------------------------
