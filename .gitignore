@@ -17,3 +17,4 @@ lnamd64/2d_node/makefile
 lnamd64/2d_host/makefile
 lnamd64/2d_node/makelog
 lnamd64/2d_host/makelog
+libudf.so
