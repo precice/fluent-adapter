@@ -61,7 +61,6 @@
     Initialization -> Edit -> select *init::libudf* from Available list -> click Add
     
     **TO BE COMPLETED**
-  
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
     adds one additional double to each face for precice face ids)
 
