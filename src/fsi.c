@@ -1,7 +1,5 @@
 #include "fsi.h"
-/*include "/home/richysudo/Richy/FP/precice/src/precice/adapters/c/SolverInterfaceC.h"*/ /*specified path to precice by richy*/
 #include "SolverInterfaceC.h"
-/*include "/home/richysudo/Richy/FP/precice/src/precice/adapters/c/Constants.h"*/
 #include "Constants.h"
 #include <float.h>
 #include <math.h>
@@ -73,14 +71,14 @@ void fsi_init(Domain* domain)
   #if !PARALLEL
   precice_process_id = 0;
   comm_size = 1;
-  #else /* ! PARALELL*/
+  #else /* !PARALLEL*/
   #if RP_HOST
   precice_process_id = 0;
   #elif RP_NODE
   precice_process_id = myid + 1;
   #endif /* elif RP_NODE */
   comm_size = compute_node_count + 1;
-  #endif /* else ! PARALLEL */
+  #endif /* else !PARALLEL */
 
   Message("  (%d) Creating solver interface\n", myid);
   precicec_createSolverInterface("Fluent", precicec_nameConfiguration(),
@@ -95,24 +93,9 @@ void fsi_init(Domain* domain)
   count_dynamic_threads();
   #endif /* ! RP_HOST */
 
- /* if (precicec_isActionRequired(precicec_actionReadSimulationCheckpoint())){
-    #if !RP_NODE */   /* HOST or SERIAL *//*
-    Message("  (%d) Reading simulation checkpoint required\n", myid);
-    RP_Set_Integer("udf/checkpoint", BOOL_TRUE);
-    #endif *//* !RP_NODE *//*
-    did_gather_write_positions = BOOL_TRUE;
-    did_gather_read_positions = BOOL_TRUE;
-    skip_grid_motion = BOOL_FALSE; *//* Read local displacements not stored in fluent checkpoint *//*
-    precicec_fulfilledAction(precicec_actionReadSimulationCheckpoint());
-  }
-EDIT: precicec_actionWriteSimulationCheckpoint() does not exist anymore.
-	
-
-*/
-
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
     Message("  (%d) Implicit coupling\n", myid);
-    #if ! RP_NODE
+    #if !RP_NODE
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
     RP_Set_Integer("udf/iterate", BOOL_TRUE);
     #endif /* ! RP_NODE */
@@ -129,7 +112,7 @@ EDIT: precicec_actionWriteSimulationCheckpoint() does not exist anymore.
 
 void fsi_write_and_advance()
 {
-  printf("(%d) Entering ON_DEMAND(write_and_andvance)\n", myid);
+  printf("(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int ongoing;
   int subcycling = ! precicec_isWriteDataRequired(CURRENT_TIMESTEP);
   int current_size = -1;
@@ -186,25 +169,6 @@ void fsi_write_and_advance()
   }
   #endif /* !RP_NODE */
 
- /* if (precicec_isActionRequired(precicec_actionWriteSimulationCheckpoint())){
-    precicec_fulfilledAction(precicec_actionWriteSimulationCheckpoint());
-    require_create_checkpoint = BOOL_TRUE;
-    #if !RP_NODE
-    Message("  (%d) Writing simulation checkpoint required\n", myid);
-    RP_Set_Integer("udf/checkpoint", BOOL_TRUE);
-    #endif *//* !RP_NODE *//*
-  }
-  #if !RP_NODE
-  else {
-    RP_Set_Integer("udf/checkpoint", BOOL_FALSE);
-  }
-  #endif *//* !RP_NODE 
-  
-This was deleted by Richard Hertrich since precicec_actionWriteSimulationCheckpoint() does not 
-exist anymore.
-
-*/
-
   printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
 }
 
@@ -257,8 +221,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #if !RP_HOST
   SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
   #endif /* !RP_HOST */
-
-  /*precicec_mapReadData(meshID); *//* Collective call necessary EDIT by RH: is automatically done now   */
 
   #if !RP_HOST /* Serial or node */
   read_displacements(dt);
@@ -816,8 +778,6 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
     all_indices[i] = i;
   }
   precicec_readBlockVectorData(displID, all_size, all_indices, all_displ);
-  /*precicec_getReadPositions(meshID, all_size, all_indices, all_coords);   
-	EDIT: function does not exist anymore*/
   for (i=0; i < all_size*ND_ND; i++){
     if (i < all_size*ND_ND) {
       printf("  (%d) coods %.16E\n", myid, all_coords[i]);
