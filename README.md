@@ -1,5 +1,5 @@
 # preCICE-adapter for the CFD code ANSYS Fluent
-*Developed by Bernhard Gatzhammer Update-Try to newer Fluent and Precice Versions*
+*Developed by Bernhard Gatzhammer and valid for FLUENT 19.1 and preCICE v1.4*
 
 ## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
@@ -29,7 +29,7 @@
   * After the installation you have two packages installed: Fluent and Ansys Workbench:
     Fluent is the CFD-solver and the workbench can be used for creating
     geometries, meshing and creating zones for boundary conditions
-  * Fluent is started by typing *fluent* in *ansys\_inc/v191/fluent/bin*
+  * Fluent is started by typing *fluent* in *ansys_inc/v191/fluent/bin*
   * Workbench is started by typing *runwb2* in
       *ansys_inc/v191/Framework/bin/Linux64*
   * Consider adding the folders into .bashrc to start it without the full
@@ -51,15 +51,17 @@
 --------------------------------------------------------------------------------
 
 ## 3. Preparing a Fluent .cas file for UDF function usage:
-  * Copy the lnamd64 udf lib folder to the simulation folder into /libudf/
+  * Copy the *lnamd64/* folder from the adapter to the simulation folder into /libudf/
   * Start Fluent and open the .msh or .cas file to be used
-  * In Fluent, go to top menu Define->User Defined->Functions...->Manage... and 
-    load the libudf folder. The names of the udf functions should appear in the 
-    Fluent command line window. (only necessary  if not yet included in the .cas file)
+  * In Fluent, go to top menu User Defined -> Functions... -> Manage... and 
+    load the libudf folder by typing the name "libudf" in the *Library Name* option. 
+    The names of the udf functions should appear in the Fluent command line window. 
+    (this needs to be done only once for a .cas file)
+  * Define a function hook at initialization. Go to top menu User Defined -> Function Hooks ->
+    Initialization -> Edit -> select *init::libudf* from Available list -> click Add
+    
+    **TO BE COMPLETED**
   
-    THIS IS HOW FAR IT WORKS
-  
-  * Define a function hook at Initialization. (see udf manueal, define -> user defined -> function hooks)
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
     adds one additional double to each face for precice face ids)
 
@@ -67,12 +69,9 @@
 
 ## 4. Preparing a Fluent .cas file for FSI simulations
 
-  * Perform the steps in 1.,2. and 3.
+  * Perform the steps in 1., 2. and 3.
   * Set a user defined mesh motion according to function "gridmotions".
-  * When the parabolic inflow profile is needed, you have to read it from file 
-    parabolic.prof, using the boundary conditions dialog box. Check, whether the
-    number of points in parabolic.prof is way more than the elements at the inflow
-    and that the velocities in the file are correct.
+    **TO BE COMPLETED** 
 
 --------------------------------------------------------------------------------
 
