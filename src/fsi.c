@@ -180,7 +180,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 
   #if !RP_HOST /* Serial or node */
   if (thread_index == dynamic_thread_size){
-    printf ("   Reset thread index\n");
+    printf ("Reset thread index\n");
     thread_index = 0;
   }
   printf("  (%d) Thread index = %d\n", myid, thread_index);
@@ -520,8 +520,7 @@ void gather_read_positions(Dynamic_Thread* dt)
             printf("  (%d) initial coord %.16E\n", myid, initial_coords[array_index*ND_ND]);
             fflush(stdout);
           }*/
-          node_index = precicec_setMeshVertex(meshID, coords ); /* changed from 
-		setReadPosition to setMeshVertex*/
+          node_index = precicec_setMeshVertex(meshID, coords );
           displ_indices[array_index] = node_index;
           array_index++;
         }
@@ -558,11 +557,6 @@ void read_displacements(Dynamic_Thread* dt)
     }
     precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         displ_indices + offset, displacements + ND_ND * offset);
-    /* TEST TEST TEST */
-    /*for (i=0; i < dynamic_thread_node_size[thread_index]; i++){
-      displacements[ND_ND*offset + i*ND_ND] = 0.0;
-      displacements[ND_ND*offset + i*ND_ND+1] = 0.0;
-    }*/
 
     Message("  (%d) Setting displacements...\n", myid);
     i = offset * ND_ND;
@@ -767,7 +761,7 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
   int* new_indices = (int*) malloc(thread_new_size * sizeof(double));
   double* all_coords = (double*) malloc(all_size * ND_ND * sizeof(double));
   double* all_displ = (double*) malloc(all_size * ND_ND * sizeof(double));
-  int* all_indices = (int*) malloc(all_size * sizeof(int));
+  int* vertexIDs = (int*) malloc(all_size * sizeof(int));
   double* tail_coords = NULL;
   int* tail_indices = NULL;
   /*double coords[ND_ND];*/
@@ -775,9 +769,9 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
   int front_size, tail_size, new_size;
 
   for (i=0; i < all_size; i++){
-    all_indices[i] = i;
+    vertexIDs[i] = i;
   }
-  precicec_readBlockVectorData(displID, all_size, all_indices, all_displ);
+  precicec_readBlockVectorData(displID, all_size, vertexIDs, all_displ);
   for (i=0; i < all_size*ND_ND; i++){
     if (i < all_size*ND_ND) {
       printf("  (%d) coods %.16E\n", myid, all_coords[i]);
@@ -808,7 +802,7 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
             }
             if (dim == ND_ND){ /* If equal */
               /*printf("  (%d) Equal!\n", myid); fflush(stdout);*/
-              new_indices[i] = all_indices[j];
+              new_indices[i] = vertexIDs[j];
               for (dim=0; dim < ND_ND; dim++){
                 left_i = i*ND_ND+dim;
                 right_i = j*ND_ND+dim;
@@ -886,7 +880,7 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
   wet_nodes_size += thread_new_size;
   dynamic_thread_node_size[thread_index] = thread_new_size;
 
-  free(all_indices);
+  free(vertexIDs);
   free(all_coords);
   free(new_indices);
   free(new_coords);
