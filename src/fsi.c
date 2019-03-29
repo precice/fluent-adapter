@@ -63,6 +63,8 @@ int check_read_positions(Dynamic_Thread* dt);
 void regather_read_positions(Dynamic_Thread* dt, int this_thread_size);
 void regather_write_positions(int current_size);
 
+/* fsi_init creates the solver interface named "Fluent" */
+
 void fsi_init(Domain* domain)
 {
   int precice_process_id = -1; /* Process ID given to preCICE */
@@ -109,6 +111,8 @@ void fsi_init(Domain* domain)
   PRF_GSYNC();
   printf("(%d) Leaving INIT\n", myid);
 }
+
+/* Main function which is called after every Fluent timestep */
 
 void fsi_write_and_advance()
 {
@@ -241,6 +245,9 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 
   printf("(%d) Leaving GRID_MOTION\n", myid);
 }
+
+/* Helper function to plot FSI coordinates (not related to preCICE
+ * functionality) */
 
 void fsi_plot_coords()
 {
