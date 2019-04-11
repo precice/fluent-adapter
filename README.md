@@ -4,6 +4,7 @@
 ## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
   * Adapt lnamd64/2ddp_host/user.udf line 1 "CSOURCES=...": There are several main udf files
+      The variable SOURCES needs one main udf file and the correspoding .c files.
       - fsi_udf.c: For FSI simulations. Needs fsi.c.
       - wave_profile_udf.c: For wave simulations with inflow profile. Needs 
         wave_profile.c.
@@ -11,10 +12,9 @@
         wave_maker.c.
       - fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and 
         wave_profile.c.
-      The variable SOURCES needs one one main udf file and the correspoding .c files.
 
-  * Adapt lnamd64/2ddp_host/user.udf lin 3 "FLUENT_INC = ..." to the fluent installation
-    folder which will be of the type ./ansys_inc/v191/fluent  
+  * Adapt lnamd64/2ddp_host/user.udf line 3 "FLUENT_INC = ..." to the fluent installation
+    folder which will be of the type *./ansys_inc/v191/fluent*  
   * Adapt the path of the python library in /src/makefile line 19
   * Update the Ansys RELEASE version in /src/makefile line 26
   * Type: make "FLUENT_ARCH=lnamd64" to start the build. Add a "clean" to clean it.
@@ -61,6 +61,7 @@
     Initialization -> Edit -> select *init::libudf* from Available list -> click Add
     
     **TO BE COMPLETED**
+  
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
     adds one additional double to each face for precice face ids)
 
@@ -70,7 +71,8 @@
 
   * Perform the steps in 1., 2. and 3.
   * Set a user defined mesh motion according to function "gridmotions".
-    **TO BE COMPLETED** 
+  
+    **------ TO BE COMPLETED ------** 
 
 --------------------------------------------------------------------------------
 
