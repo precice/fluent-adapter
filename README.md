@@ -59,11 +59,10 @@
     (this needs to be done only once for a .cas file)
   * Define a function hook at initialization. Go to top menu User Defined -> Function Hooks ->
     Initialization -> Edit -> select *init::libudf* from Available list -> click Add
-    
-    **TO BE COMPLETED**
-  
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
     adds one additional double to each face for precice face ids)
+
+  ** // TO BE COMPLETED // **
 
 --------------------------------------------------------------------------------
 
