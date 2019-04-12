@@ -24,6 +24,9 @@
 ## 2. Installing and Starting Fluent on Ubuntu machine
 
   ### 2.1 How to install Fluent - **ANSYS V19.1 on Linux Ubuntu 16.04 LTS** 
+  * This installation procedure works only for the above mentioned ANSYS version and Ubuntu version.
+    ANSYS V19.1 installation on Ubuntu 18.04 LTS hangs between 80-90%
+    Please refer to this [issue](https://github.com/precice/fluent-adapter/issues/3) for further details
   * The following installation guide for an earlier Ansys version works for the above configuration:
     <https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html>
   * After the installation you have two packages installed: Fluent and Ansys Workbench:
