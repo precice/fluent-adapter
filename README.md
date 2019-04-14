@@ -4,20 +4,22 @@
 ## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
   * Adapt lnamd64/2ddp_host/user.udf line 1 "CSOURCES=...": There are several main udf files
-      The variable SOURCES needs one main udf file and the correspoding .c files.
-      - fsi_udf.c: For FSI simulations. Needs fsi.c.
-      - wave_profile_udf.c: For wave simulations with inflow profile. Needs 
-        wave_profile.c.
-      - wave_maker_udf.c: For wave simulations with moving wall. Needs 
-        wave_maker.c.
-      - fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and 
-        wave_profile.c.
-
-  * Adapt lnamd64/2ddp_host/user.udf line 3 "FLUENT_INC = ..." to the fluent installation
-    folder which will be of the type *./ansys_inc/v191/fluent*  
+  * The variable SOURCES needs one main udf file and the correspoding .c files: 
+    + fsi_udf.c: This is the main ANSYS readable file from which FLUENT will call functions during each iteration
+                 for FSI simulations. Needs fsi.c and fsi.h
+    + wave_profile_udf.c: For wave simulations with inflow profile. Needs wave_profile.c and wave_profile.h
+    + wave_maker_udf.c: For wave simulations with moving wall. Needs wave_maker.c.
+    + fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and wave_profile.c and respective 
+                                    header files
+  * Adapt lnamd64/2ddp_host/user.udf line 3 `FLUENT_INC = ...` to the fluent installation
+    folder which will be of the type `./ansys_inc/v191/fluent`  
   * Adapt the path of the python library in /src/makefile line 19
+    Example of line 19: `USER_OBJECTS=`pkg-config --cflags --libs libprecice` /usr/lib/x86_64-linux-gnu/libpython2.7.so`
+    **NOTE**: Here it is assumed that the user installs preCICE using cmake with the latest release instructions
   * Update the Ansys RELEASE version in /src/makefile line 26
-  * Type: make "FLUENT_ARCH=lnamd64" to start the build. Add a "clean" to clean it.
+    Example of line 26: `RELEASE=19.1.0`
+  * Type: `make "FLUENT_ARCH=lnamd64"` to start the build 
+  * Use `make clean` to clean build process
 
 --------------------------------------------------------------------------------
 
@@ -46,8 +48,8 @@
     (for parallel select also "show more", "parallel settings", "mpi types" -> open mpi
 
   ### 2.3 How to start Fluent without GUI
-  * serial:   fluent 2ddp -g < steer-fluent.txt
-  * parallel: fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt
+  * serial:   `fluent 2ddp -g < steer-fluent.txt`
+  * parallel: `fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt`
     (-t4 sets 4 processes for computations)
     (steer-fluent.txt drives Fluent, can also be done by hand)
 
@@ -65,7 +67,7 @@
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
     adds one additional double to each face for precice face ids)
 
-  ** // TO BE COMPLETED // **
+    **------ TO BE COMPLETED ------** 
 
 --------------------------------------------------------------------------------
 
