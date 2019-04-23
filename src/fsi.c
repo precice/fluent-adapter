@@ -44,7 +44,6 @@ int comm_size = -1;
 int require_create_checkpoint = BOOL_FALSE;
 int* precice_force_ids; /* Gathered in host node (or serial node) */
 int* precice_displ_ids;
-/*int global_displ_index = 0;*/
 
 #if ND_ND == 2
 #define norm(a, b) sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]))
@@ -54,7 +53,6 @@ int* precice_displ_ids;
 
 void count_dynamic_threads();
 void gather_write_positions();
-/*void gather_precice_write_indices();*/
 void write_forces();
 void gather_read_positions(Dynamic_Thread* dt);
 void read_displacements(Dynamic_Thread* dt);
@@ -63,8 +61,10 @@ int check_read_positions(Dynamic_Thread* dt);
 void regather_read_positions(Dynamic_Thread* dt, int this_thread_size);
 void regather_write_positions(int current_size);
 
-/* fsi_init creates the solver interface named "Fluent" */
-
+/* This function creates the solver interface named "Fluent" and initializes 
+ * the interface
+ * */
+ 
 void fsi_init(Domain* domain)
 {
   int precice_process_id = -1; /* Process ID given to preCICE */
@@ -82,13 +82,14 @@ void fsi_init(Domain* domain)
   comm_size = compute_node_count + 1;
   #endif /* else !PARALLEL */
 
+  printf("\nReaching till here in init\n")
   Message("  (%d) Creating solver interface\n", myid);
   precicec_createSolverInterface("Fluent", precicec_nameConfiguration(),
                                 precice_process_id, comm_size);
 
   Message("  (%d) Initializing coupled simulation\n", myid);
   timestep_limit = precicec_initialize();
-  Message("  (%d) ... done\n", myid);
+  Message("  (%d) Initialization done\n", myid);
 
   #if !RP_HOST
   /* There might be several face threads forming the wet surface */
@@ -112,7 +113,9 @@ void fsi_init(Domain* domain)
   printf("(%d) Leaving INIT\n", myid);
 }
 
-/* Main function which is called after every Fluent timestep */
+/* Main function advances the interface time step and provides the mechanism
+ * for proper coupling scheme to be applied
+ * */
 
 void fsi_write_and_advance()
 {
@@ -176,10 +179,15 @@ void fsi_write_and_advance()
   printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
 }
 
+/* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
+ * This function will read the displacements values from interface and move the 
+ * structural mesh accordingly 
+ * */
+ 
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
   printf("\n(%d) Entering GRID_MOTION\n", myid);
-  int meshID = precicec_getMeshID("WetSurface");
+  int meshID = precicec_getMeshID("StructureMesh");
   int current_thread_size = -1;
 
   #if !RP_HOST /* Serial or node */
@@ -219,8 +227,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     printf("  (%d) Skipping first round grid motion\n", myid);
     return;
   }
-
-  /* Here the code was before */
 
   #if !RP_HOST
   SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
@@ -395,7 +401,7 @@ void gather_write_positions()
 {
   printf("(%d) Entering gather_write_positions()\n", myid);
   #if !RP_HOST
-  int meshID = precicec_getMeshID("WetSurface");
+  int meshID = precicec_getMeshID("StructureMesh");
   int i = 0;
   double center[ND_ND];
   Domain* domain = NULL;
@@ -491,7 +497,7 @@ void gather_read_positions(Dynamic_Thread* dt)
   int n = 0, dim = 0;
   int array_index = 0, node_index = 0;
   double coords[ND_ND];
-  int meshID = precicec_getMeshID("WetSurface");
+  int meshID = precicec_getMeshID("StructureMesh");
 
   /* Count not yet as updated (from other threads) marked nodes */
   begin_f_loop(face, face_thread){
@@ -527,7 +533,7 @@ void gather_read_positions(Dynamic_Thread* dt)
             printf("  (%d) initial coord %.16E\n", myid, initial_coords[array_index*ND_ND]);
             fflush(stdout);
           }*/
-          node_index = precicec_setMeshVertex(meshID, coords );
+          node_index = precicec_setMeshVertex(meshID,coords);
           displ_indices[array_index] = node_index;
           array_index++;
         }
@@ -544,10 +550,13 @@ void gather_read_positions(Dynamic_Thread* dt)
   printf("(%d) Leaving gather_read_positions()\n", myid);
 }
 
-
+/* This functions reads the new displacements provided by the structural
+ * solver and moves the mesh coordinates in FLUENT with the corresponding
+ * values
+ * */
 void read_displacements(Dynamic_Thread* dt)
 {
-  int meshID=precicec_getMeshID("WetSurface");/*added */
+  int meshID=precicec_getMeshID("StructureMesh");/*added */
   int displID = precicec_getDataID("Displacements", meshID); /* EDIT: meshID as additional parameter */
   int offset = 0;
   int i = 0, n = 0, dim = 0;
@@ -599,8 +608,8 @@ void read_displacements(Dynamic_Thread* dt)
 
 void write_forces()
 {
-  int meshID=precicec_getMeshID("WetSurface");/*added */
-  int forceID = precicec_getDataID("Forces", meshID); /*added meshID as argument*/
+  int meshID=precicec_getMeshID("StructureMesh");/*added */
+  int forceID = precicec_getDataID("Forces", meshID);
   int i=0, j=0;
   Domain* domain = NULL;
   Dynamic_Thread* dynamic_thread = NULL;
