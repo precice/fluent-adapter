@@ -21,7 +21,7 @@ DEFINE_ON_DEMAND(write_and_advance)
 }
 
 /* This macro is part of Dynamic Mesh DEFINE Marcos to define 
- * the behavior of a dynamic mesh FLUENT dictates that this 
+ * the behavior of a dynamic mesh. FLUENT dictates that this 
  * Macro works only as a compiled UDF
  * Ref: ANSYS v19.1 ANSYS_Fluent_UDF_Manual.pdf Section 2.6.4 
  * */
