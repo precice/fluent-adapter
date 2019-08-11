@@ -82,7 +82,6 @@ void fsi_init(Domain* domain)
   comm_size = compute_node_count + 1;
   #endif /* else !PARALLEL */
 
-  printf("\nReaching till here in init\n")
   Message("  (%d) Creating solver interface\n", myid);
   precicec_createSolverInterface("Fluent", precicec_nameConfiguration(),
                                 precice_process_id, comm_size);
