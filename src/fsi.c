@@ -1,6 +1,5 @@
 #include "fsi.h"
 #include "SolverInterfaceC.h"
-#include "Constants.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -61,10 +60,10 @@ int check_read_positions(Dynamic_Thread* dt);
 void regather_read_positions(Dynamic_Thread* dt, int this_thread_size);
 void regather_write_positions(int current_size);
 
-/* This function creates the solver interface named "Fluent" and initializes 
+/* This function creates the solver interface named "Fluent" and initializes
  * the interface
  * */
- 
+
 void fsi_init(Domain* domain)
 {
   int precice_process_id = -1; /* Process ID given to preCICE */
@@ -83,7 +82,7 @@ void fsi_init(Domain* domain)
   #endif /* else !PARALLEL */
 
   Message("  (%d) Creating solver interface\n", myid);
-  precicec_createSolverInterface("Fluent", precicec_nameConfiguration(),
+  precicec_createSolverInterface("Fluent", "precice-config.xml",
                                 precice_process_id, comm_size);
 
   Message("  (%d) Initializing coupled simulation\n", myid);
@@ -179,10 +178,10 @@ void fsi_write_and_advance()
 }
 
 /* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
- * This function will read the displacements values from interface and move the 
- * structural mesh accordingly 
+ * This function will read the displacements values from interface and move the
+ * structural mesh accordingly
  * */
- 
+
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
   printf("\n(%d) Entering GRID_MOTION\n", myid);
