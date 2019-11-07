@@ -1,5 +1,5 @@
 CSOURCES= fsi_udf.c fsi.c
 HSOURCES=
-FLUENT_INC=/home/ishaan/ansys_inc/v191/fluent
+FLUENT_INC=/home/ishaan/ansys_inc/v195/fluent
 HOST_FLAGS=-DUSE_UDF_HOST_DUMMY
 GPU_SUPPORT=off
