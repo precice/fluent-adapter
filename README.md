@@ -1,23 +1,19 @@
 # preCICE-adapter for the CFD code ANSYS Fluent
-*Developed by Bernhard Gatzhammer and valid for FLUENT 19.1 and preCICE v1.4*
+*Developed by Bernhard Gatzhammer and valid for FLUENT 19.5 and preCICE v1.6 on Ubuntu 18.04*
 
 ## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
-  * Adapt lnamd64/2ddp_host/user.udf line 1 "CSOURCES=...": There are several main udf files
+  * Adapt `lnamd64/2ddp_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
   * The variable SOURCES needs one main udf file and the correspoding .c files: 
-    + fsi_udf.c: This is the main ANSYS readable file from which FLUENT will call functions during each iteration
+    + fsi_udf.c: This is the main ANSYS readable file used by FLUENT to call functions during each iteration
                  for FSI simulations. Needs fsi.c and fsi.h
-    + wave_profile_udf.c: For wave simulations with inflow profile. Needs wave_profile.c and wave_profile.h
-    + wave_maker_udf.c: For wave simulations with moving wall. Needs wave_maker.c.
-    + fsi_and_wave_profile_udf.c: For FSI + wave simulations. Needs fsi.c and wave_profile.c and respective 
-                                    header files
-  * Adapt lnamd64/2ddp_host/user.udf line 3 `FLUENT_INC = ...` to the fluent installation
-    folder which will be of the type `./ansys_inc/v191/fluent`  
+  * Adapt `lnamd64/2ddp_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation
+    folder which will be of the type `./ansys_inc/v195/fluent`  
   * Adapt the path of the python library in /src/makefile line 19
     Example of line 19: `USER_OBJECTS=`pkg-config --cflags --libs libprecice` /usr/lib/x86_64-linux-gnu/libpython2.7.so`
     **NOTE**: Here it is assumed that the user installs preCICE using cmake with the latest release instructions
   * Update the Ansys RELEASE version in /src/makefile line 26
-    Example of line 26: `RELEASE=19.1.0`
+    Example of line 26: `RELEASE=19.5.0`
   * Type: `make "FLUENT_ARCH=lnamd64"` to start the build 
   * Use `make clean` to clean build process
 
@@ -25,20 +21,19 @@
 
 ## 2. Installing and Starting Fluent on Ubuntu machine
 
-  ### 2.1 How to install Fluent - **ANSYS V19.1 on Linux Ubuntu 16.04 LTS** 
-  * This installation procedure works only for the above mentioned ANSYS version and Ubuntu version.
-    ANSYS V19.1 installation on Ubuntu 18.04 LTS hangs between 80-90%
-    Please refer to this [issue](https://github.com/precice/fluent-adapter/issues/3) for further details
-  * The following installation guide for an earlier Ansys version works for the above configuration:
+  ### 2.1 How to install Fluent - **ANSYS V19.5 on Linux Ubuntu 18.04 LTS** 
+  * This installation procedure is a non-standard way to install ANSYS V19.5 on Ubuntu 18.04 LTS.
+    Direct installation using `./INSTALL` from the ANSYS directory hangs between 80-90%
+  * The following installation guide for an earlier ANSYS version works for the above configuration:
     <https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html>
-  * After the installation you have two packages installed: Fluent and Ansys Workbench:
-    Fluent is the CFD-solver and the workbench can be used for creating
-    geometries, meshing and creating zones for boundary conditions
-  * Fluent is started by typing *fluent* in *ansys_inc/v191/fluent/bin*
+  * Of the complete installation the relevant packages are FLUENT and ANSYS Workbench. Fluent is the 
+    CFD-solver and the workbench a software used to control the complete CFD workflow from geometry
+    generation to post-processing
+  * Fluent is started by typing *fluent* in *ansys_inc/v195/fluent/bin*
   * Workbench is started by typing *runwb2* in
-      *ansys_inc/v191/Framework/bin/Linux64*
-  * Consider adding the folders into .bashrc to start it without the full
-    path from anywhere.
+      *ansys_inc/v195/Framework/bin/Linux64*
+  * Paths to the FLUENT and Workbench executable are expected to be added in the `~/.bashrc` as part of 
+    the last step in the installation guide mentioned above 
   * Fluent can also be started from the workbench GUI (Choose Fluid-Flow
     (Fluent), double-click on setup opens fluent)
 
