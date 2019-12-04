@@ -3,16 +3,17 @@
 
 ## 1. How to build the Fluent-preCICE adapter: 
   * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
-  * Adapt `lnamd64/2ddp_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
+  * Adapt `lnamd64/2d_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
   * The variable SOURCES needs one main udf file and the correspoding .c files: 
     + fsi_udf.c: This is the main ANSYS readable file used by FLUENT to call functions during each iteration
                  for FSI simulations. Needs fsi.c and fsi.h
-  * Adapt `lnamd64/2ddp_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation
-    folder which will be of the type `./ansys_inc/v195/fluent`  
-  * Adapt the path of the python library in /src/makefile line 19
+  * Adapt `lnamd64/2d_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation
+    folder which will be of the type `./ansys_inc/v195/fluent`
+  * Repeat the above steps for `lnamd64/2d_node` folder in the exact same manner
+  * Adapt the path of the python library in `src/makefile` line 19
     Example of line 19: `USER_OBJECTS=`pkg-config --cflags --libs libprecice` /usr/lib/x86_64-linux-gnu/libpython2.7.so`
-    **NOTE**: Here it is assumed that the user installs preCICE using cmake with the latest release instructions
-  * Update the Ansys RELEASE version in /src/makefile line 26
+    **NOTE**: Here it is assumed that the user clones preCICE version from https://github.com/precice/precice/tree/master using cmake 
+  * Update the Ansys RELEASE version in `src/makefile` line 26
     Example of line 26: `RELEASE=19.5.0`
   * Type: `make "FLUENT_ARCH=lnamd64"` to start the build 
   * Use `make clean` to clean build process
