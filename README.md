@@ -2,18 +2,16 @@
 *Developed by Bernhard Gatzhammer and valid for FLUENT 19.5 and preCICE v1.6 on Ubuntu 18.04*
 
 ## 1. How to build the Fluent-preCICE adapter: 
-  * Put the library of preCICE (libprecice.so) into the lnamd64 folder.
   * Adapt `lnamd64/2d_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
   * The variable SOURCES needs one main udf file and the correspoding .c files: 
-    + fsi_udf.c: This is the main ANSYS readable file used by FLUENT to call functions during each iteration
-                 for FSI simulations. Needs fsi.c and fsi.h
+    + fsi_udf.c: This is the main ANSYS readable file used by Fluent to call functions during each iteration
+                 for FSI simulations. This ANSYS UDF file needs fsi.c and fsi.h for execution
   * Adapt `lnamd64/2d_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation
     folder which will be of the type `./ansys_inc/v195/fluent`
   * Repeat the above steps for `lnamd64/2d_node` folder in the exact same manner
-  * Adapt the path of the python library in `src/makefile` line 19
-    Example of line 19: `USER_OBJECTS=`pkg-config --cflags --libs libprecice` /usr/lib/x86_64-linux-gnu/libpython2.7.so`
-    **NOTE**: Here it is assumed that the user clones preCICE version from https://github.com/precice/precice/tree/master using cmake 
-  * Update the Ansys RELEASE version in `src/makefile` line 26
+  * Adapt the path of the python library in `src/makefile` line 19.  
+    **NOTE**: Python shared library is available within the ANSYS installation. Example path is: `/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so`   
+  * Update the ANSYS Release version in `src/makefile` line 26
     Example of line 26: `RELEASE=19.5.0`
   * Type: `make "FLUENT_ARCH=lnamd64"` to start the build 
   * Use `make clean` to clean build process
@@ -27,13 +25,13 @@
     Direct installation using `./INSTALL` from the ANSYS directory hangs between 80-90%
   * The following installation guide for an earlier ANSYS version works for the above configuration:
     <https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html>
-  * Of the complete installation the relevant packages are FLUENT and ANSYS Workbench. Fluent is the 
+  * Of the complete installation the relevant packages are Fluent and ANSYS Workbench. Fluent is the 
     CFD-solver and the workbench a software used to control the complete CFD workflow from geometry
     generation to post-processing
   * Fluent is started by typing *fluent* in *ansys_inc/v195/fluent/bin*
   * Workbench is started by typing *runwb2* in
       *ansys_inc/v195/Framework/bin/Linux64*
-  * Paths to the FLUENT and Workbench executable are expected to be added in the `~/.bashrc` as part of 
+  * Paths to the Fluent and Workbench executable are expected to be added in the `~/.bashrc` as part of 
     the last step in the installation guide mentioned above 
   * Fluent can also be started from the workbench GUI (Choose Fluid-Flow
     (Fluent), double-click on setup opens fluent)
@@ -52,12 +50,13 @@
 --------------------------------------------------------------------------------
 
 ## 3. Preparing a Fluent .cas file for UDF function usage:
-  * Copy the *lnamd64/* folder from the adapter to the simulation folder into /libudf/
-  * Start Fluent and open the .msh or .cas file to be used
+  * Create a folder `libudf/` at the location `<project_dir>/dp0/FFF/Fluent`
+  * Copy the folder `lnamd64/` from the adapter into folder `libudf/`
+  * Start Fluent and open the project by opening the `.msh`, `.cas` or `.cas.gz` file in Fluent
   * In Fluent, go to top menu User Defined -> Functions... -> Manage... and 
-    load the libudf folder by typing the name "libudf" in the *Library Name* option. 
+    load the `libudf/` folder by typing the name "libudf" in the *Library Name* option and clicking on Load. 
     The names of the udf functions should appear in the Fluent command line window. 
-    (this needs to be done only once for a .cas file)
+    (this needs to be done only once for a project)
   * Define a function hook at initialization. Go to top menu User Defined -> Function Hooks ->
     Initialization -> Edit -> select *init::libudf* from Available list -> click Add
   * Define 1 user defined memory for the faces. (define -> user defined -> memory -> 1; 
