@@ -1,4 +1,4 @@
-(rpsetvar 'dynamesh/update-in-timestep/interval 1000000000)
+(rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000000)
 (ti-menu-load-string "solve dual-time-iterate 1 0")
 
 (do () ((= (%rpgetvar 'udf/ongoing) 0))
@@ -12,9 +12,9 @@
          (ti-menu-load-string "define/user-defined/execute-on-demand \"write_and_advance::libudf\"")
          (if (= (%rpgetvar 'udf/convergence) 0)
          ( begin 
-            (rpsetvar 'dynamesh/update-in-timestep/interval 1)
+            (rpsetvar 'dynamesh/update-in-timestep/update-interval 1)
             (ti-menu-load-string "solve iterate 1")
-            (rpsetvar 'dynamesh/update-in-timestep/interval 1000000000)
+            (rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000000)
          ))
       )
    ))
