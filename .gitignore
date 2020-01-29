@@ -4,6 +4,7 @@
 *.exe
 *.log
 *.pyc
+*.so
 .cproject
 .project
 .sconsign.dblite
@@ -11,3 +12,10 @@
 \#*#
 core
 tests/test_fluent
+Makefile
+src/makefile
+lnamd64/2d_node/makefile
+lnamd64/2d_host/makefile
+lnamd64/2d_node/makelog
+lnamd64/2d_host/makelog
+*.sh
