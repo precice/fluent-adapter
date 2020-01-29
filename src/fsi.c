@@ -69,6 +69,11 @@ void fsi_init(Domain* domain)
   int precice_process_id = -1; /* Process ID given to preCICE */
   printf("\nEntering fsi_init\n");
 
+  /* Only Host Process (Rank 0) handles the coupling interface */
+  #if !RP_HOST
+  return 0;
+  #endif
+
   #if !PARALLEL
   precice_process_id = 0;
   comm_size = 1;
@@ -80,6 +85,10 @@ void fsi_init(Domain* domain)
   #endif /* elif RP_NODE */
   comm_size = compute_node_count + 1;
   #endif /* else !PARALLEL */
+
+  /* Parallel implementation above is bypassed for testing serial version */
+  precice_process_id = 0;
+  comm_size = 1;
 
   Message("  (%d) Creating solver interface\n", myid);
   precicec_createSolverInterface("Fluent", "precice-config.xml",
@@ -117,6 +126,9 @@ void fsi_init(Domain* domain)
 
 void fsi_write_and_advance()
 {
+  #if !RP_HOST
+    return 0;
+  #endif
   printf("(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int ongoing;
   int subcycling = ! precicec_isWriteDataRequired(CURRENT_TIMESTEP);
@@ -184,6 +196,9 @@ void fsi_write_and_advance()
 
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
+  #if !RP_HOST
+  return 0;
+  #endif
   printf("\n(%d) Entering GRID_MOTION\n", myid);
   int meshID = precicec_getMeshID("StructureMesh");
   int current_thread_size = -1;
