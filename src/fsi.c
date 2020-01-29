@@ -101,7 +101,7 @@ void fsi_init(Domain* domain)
     did_gather_write_positions = BOOL_TRUE;
     did_gather_read_positions = BOOL_TRUE;
     skip_grid_motion = BOOL_FALSE; /* Read local displacements not stored in fluent checkpoint */
-    precicec_fulfilledAction(precicec_actionReadSimulationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionReadSimulationCheckpoint());
   }
 
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
@@ -110,7 +110,7 @@ void fsi_init(Domain* domain)
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
     RP_Set_Integer("udf/iterate", BOOL_TRUE);
     #endif /* ! RP_NODE */
-    precicec_fulfilledAction(precicec_actionWriteIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
   else {
     Message("  (%d) Explicit coupling\n", myid);
@@ -164,14 +164,14 @@ void fsi_write_and_advance()
     #if !RP_NODE
     RP_Set_Integer("udf/convergence", BOOL_TRUE);
     #endif /* !RP_NODE */
-    precicec_fulfilledAction(precicec_actionWriteIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
 
   if (precicec_isActionRequired(precicec_actionReadIterationCheckpoint())){
     #if !RP_NODE
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
     #endif /* !RP_NODE */
-    precicec_fulfilledAction(precicec_actionReadIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionReadIterationCheckpoint());
   }
 
   #if !RP_NODE
@@ -181,7 +181,7 @@ void fsi_write_and_advance()
   #endif /* !RP_NODE */
 
   if (precicec_isActionRequired(precicec_actionWriteSimulationCheckpoint())){
-    precicec_fulfilledAction(precicec_actionWriteSimulationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionWriteSimulationCheckpoint());
     require_create_checkpoint = BOOL_TRUE;
     #if !RP_NODE
     Message("  (%d) Writing simulation checkpoint required\n", myid);
