@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "SolverInterfaceC.h"
+#include "precice/SolverInterfaceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -50,6 +50,7 @@ int* precice_displ_ids;
 #error Not implemented!
 #endif
 
+/* Forward declarations of helper functions */
 void count_dynamic_threads();
 void gather_write_positions();
 void write_forces();
@@ -62,8 +63,8 @@ void regather_write_positions(int current_size);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
+ * fsi_init is directly called by FLUENT UDF Functionality
  * */
-
 void fsi_init(Domain* domain)
 {
   int precice_process_id = -1; /* Process ID given to preCICE */
@@ -71,8 +72,6 @@ void fsi_init(Domain* domain)
 
   /* Only Host Process (Rank 0) handles the coupling interface */
   #if !RP_HOST
-  return 0;
-  #endif
 
   #if !PARALLEL
   precice_process_id = 0;
@@ -91,6 +90,8 @@ void fsi_init(Domain* domain)
   comm_size = 1;
 
   Message("  (%d) Creating solver interface\n", myid);
+
+  /* temporarily hard coding Solver name and preCICE Config File name  */
   precicec_createSolverInterface("Fluent", "precice-config.xml",
                                 precice_process_id, comm_size);
 
@@ -109,7 +110,7 @@ void fsi_init(Domain* domain)
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
     RP_Set_Integer("udf/iterate", BOOL_TRUE);
     #endif /* ! RP_NODE */
-    precicec_fulfilledAction(precicec_actionWriteIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
   else {
     Message("  (%d) Explicit coupling\n", myid);
@@ -117,18 +118,20 @@ void fsi_init(Domain* domain)
 
   Message("  (%d) Synchronizing Fluent processes\n", myid);
   PRF_GSYNC();
+
   printf("(%d) Leaving INIT\n", myid);
+  #endif /* !RP_HOST */
 }
 
 /* Main function advances the interface time step and provides the mechanism
  * for proper coupling scheme to be applied
+ * fsi_write_and_advance is directly called by FLUENT UDF functionality
  * */
-
 void fsi_write_and_advance()
 {
+  /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
   #if !RP_HOST
-    return 0;
-  #endif
+
   printf("(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int ongoing;
   int subcycling = ! precicec_isWriteDataRequired(CURRENT_TIMESTEP);
@@ -170,14 +173,14 @@ void fsi_write_and_advance()
     #if !RP_NODE
     RP_Set_Integer("udf/convergence", BOOL_TRUE);
     #endif /* !RP_NODE */
-    precicec_fulfilledAction(precicec_actionWriteIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
 
   if (precicec_isActionRequired(precicec_actionReadIterationCheckpoint())){
     #if !RP_NODE
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
     #endif /* !RP_NODE */
-    precicec_fulfilledAction(precicec_actionReadIterationCheckpoint());
+    precicec_markActionFulfilled(precicec_actionReadIterationCheckpoint());
   }
 
   #if !RP_NODE
@@ -187,18 +190,19 @@ void fsi_write_and_advance()
   #endif /* !RP_NODE */
 
   printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
+  #endif /* !RP_HOST */
 }
 
 /* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
  * This function will read the displacements values from interface and move the
  * structural mesh accordingly
+ * fsi_grid_motion is directly related to mesh motion in FLUENT UDF Functionality
  * */
-
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
+  /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
-  return 0;
-  #endif
+
   printf("\n(%d) Entering GRID_MOTION\n", myid);
   int meshID = precicec_getMeshID("StructureMesh");
   int current_thread_size = -1;
@@ -263,11 +267,11 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   }
 
   printf("(%d) Leaving GRID_MOTION\n", myid);
+  #endif /* !RP_HOST  */
 }
 
 /* Helper function to plot FSI coordinates (not related to preCICE
  * functionality) */
-
 void fsi_plot_coords()
 {
   printf("(%d) Entering ON_DEMAND(plot_coords)\n", myid);
@@ -455,7 +459,7 @@ void gather_write_positions()
   Message("  (%d) ...done (counted %d wet edges)\n", myid, wet_edges_size);
   Message("  (%d) Allocating %d force vector values\n", myid, wet_edges_size * ND_ND);
   if (forces != NULL){
-    Message("      (%d) ERROR: Forces vector allocated multiple times!\n", myid);
+    Message("  (%d) ERROR: Forces vector allocated multiple times!\n", myid);
   }
   forces = (double*) malloc(wet_edges_size * ND_ND * sizeof(double));
   Message("  (%d) Allocating %d force indices\n", myid, wet_edges_size);
@@ -569,8 +573,8 @@ void gather_read_positions(Dynamic_Thread* dt)
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
-  int meshID=precicec_getMeshID("StructureMesh");/*added */
-  int displID = precicec_getDataID("Displacements", meshID); /* EDIT: meshID as additional parameter */
+  int meshID = precicec_getMeshID("StructureMesh");
+  int displID = precicec_getDataID("Displacements", meshID);
   int offset = 0;
   int i = 0, n = 0, dim = 0;
   Thread* face_thread  = DT_THREAD(dt);
@@ -619,9 +623,12 @@ void read_displacements(Dynamic_Thread* dt)
   Message("  (%d) Max displacement delta: %f\n", myid, max_displ_delta);
 }
 
+/* This function writes the new forces on the structure calculated in FLUENT to the
+ * Structural solver
+ */
 void write_forces()
 {
-  int meshID=precicec_getMeshID("StructureMesh");/*added */
+  int meshID = precicec_getMeshID("StructureMesh");
   int forceID = precicec_getDataID("Forces", meshID);
   int i=0, j=0;
   Domain* domain = NULL;
@@ -778,8 +785,7 @@ int check_read_positions(Dynamic_Thread* dt)
 void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
 {
   Message("  (%d) Regathering read positions...\n", myid);
-
-  int i=0, j=0, n=0, dim=0;
+  int i = 0, j = 0, n = 0, dim = 0;
   Thread* face_thread = DT_THREAD(dt);
   Node* node;
   face_t face;
