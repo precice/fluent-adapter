@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "precice/SolverInterfaceC.h"
+#include "/home/ishaan/precice/extras/bindings/c/include/precice/SolverInterfaceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -204,7 +204,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #if !RP_HOST
 
   printf("\n(%d) Entering GRID_MOTION\n", myid);
-  int meshID = precicec_getMeshID("StructureMesh");
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
   int current_thread_size = -1;
 
   #if !RP_HOST /* Serial or node */
@@ -418,7 +418,7 @@ void gather_write_positions()
 {
   printf("(%d) Entering gather_write_positions()\n", myid);
   #if !RP_HOST
-  int meshID = precicec_getMeshID("StructureMesh");
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
   int i = 0;
   double center[ND_ND];
   Domain* domain = NULL;
@@ -514,7 +514,7 @@ void gather_read_positions(Dynamic_Thread* dt)
   int n = 0, dim = 0;
   int array_index = 0, node_index = 0;
   double coords[ND_ND];
-  int meshID = precicec_getMeshID("StructureMesh");
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
 
   /* Count not yet as updated (from other threads) marked nodes */
   begin_f_loop(face, face_thread){
@@ -573,7 +573,7 @@ void gather_read_positions(Dynamic_Thread* dt)
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
-  int meshID = precicec_getMeshID("StructureMesh");
+  int meshID = precicec_getMeshID("stationey_flexi_bottom");
   int displID = precicec_getDataID("Displacements", meshID);
   int offset = 0;
   int i = 0, n = 0, dim = 0;
@@ -628,7 +628,7 @@ void read_displacements(Dynamic_Thread* dt)
  */
 void write_forces()
 {
-  int meshID = precicec_getMeshID("StructureMesh");
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
   int forceID = precicec_getDataID("Forces", meshID);
   int i=0, j=0;
   Domain* domain = NULL;

@@ -16,4 +16,4 @@
 (rpsetvar 'udf/iterate 0)
 (rpsetvar 'udf/checkpoint 0)
 (rpsetvar 'dynamesh/update-in-timestep/residual-criterion -1.0)
-(init-flow)
+(ti-menu-load-string "solve/initialize/initialize-flow")
