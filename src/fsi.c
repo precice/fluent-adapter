@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "/home/ishaan/precice/extras/bindings/c/include/precice/SolverInterfaceC.h"
+#include "SolverInterfaceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -60,6 +60,7 @@ int check_write_positions();
 int check_read_positions(Dynamic_Thread* dt);
 void regather_read_positions(Dynamic_Thread* dt, int this_thread_size);
 void regather_write_positions(int current_size);
+void set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
@@ -116,6 +117,9 @@ void fsi_init(Domain* domain)
     Message("  (%d) Explicit coupling\n", myid);
   }
 
+  /* Set coupling mesh */
+  set_mesh_positions(domain);
+  
   Message("  (%d) Synchronizing Fluent processes\n", myid);
   PRF_GSYNC();
 
@@ -224,16 +228,21 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     printf("  (%d) ERROR: face_thread == NULL\n", myid);
     exit(1);
   }
+  
+  /*
+   * Commenting this out as preCICE does not support dynamic meshes yet.
+   * Mesh allocation needs to happen only once at the beginning
   if (!did_gather_read_positions){
     gather_read_positions(dt);
   }
   else {
-    /* Read positions can change in parallel mode when load-balancing occurs */
+    /* Read positions can change in parallel mode when load-balancing occurs
     current_thread_size = check_read_positions(dt);
     if (current_thread_size != -1){
       regather_read_positions(dt, current_thread_size);
     }
   }
+  */
   #endif /* !RP_HOST */
 
   if (skip_grid_motion){
@@ -505,6 +514,78 @@ void gather_write_positions()
   printf("(%d) Leaving gather_write_positions()\n", myid);
 }
 
+void set_mesh_positions(Domain* domain)
+{
+  printf("(%d) Entering set_mesh_positions()\n", myid);
+  Thread* face_thread  = NULL;
+  Dynamic_Thread* dynamic_thread = NULL;
+  Node* node;
+  face_t face;
+  int n = 0, dim = 0;
+  int array_index = 0, node_index = 0;
+  double coords[ND_ND];
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  
+    if (domain->dynamic_threads == NULL){
+    Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
+    exit(1);
+  }
+  dynamic_thread = domain->dynamic_threads;
+
+  face_thread  = DT_THREAD(dynamic_thread);
+  if (face_thread == NULL){	
+	printf("  (%d) ERROR: face_thread == NULL\n", myid);
+    fflush(stdout);
+    exit(1);
+  }
+
+  /* Count not yet as updated (from other threads) marked nodes */
+  begin_f_loop(face, face_thread){
+    if (PRINCIPAL_FACE_P(face,face_thread)){
+      f_node_loop (face, face_thread, n){
+        node = F_NODE ( face, face_thread, n );
+        if (NODE_POS_NEED_UPDATE(node)){
+          NODE_MARK(node) = 12345;
+          wet_nodes_size++;
+          dynamic_thread_node_size[thread_index]++;
+        }
+      }
+    }
+  } end_f_loop(face, face_thread);
+
+  /* Get initial coordinates and reset update marking */
+  printf("  (%d) Setting %d initial positions ...\n", myid, wet_nodes_size);
+  initial_coords = (double*) realloc(initial_coords, wet_nodes_size * ND_ND * sizeof(double));
+  displacements = (double*) realloc(displacements, wet_nodes_size * ND_ND * sizeof(double));
+  displ_indices = (int*) realloc(displ_indices, wet_nodes_size * sizeof(int));
+  array_index = wet_nodes_size - dynamic_thread_node_size[thread_index];
+  begin_f_loop (face, face_thread){
+    if (PRINCIPAL_FACE_P(face,face_thread)){
+      f_node_loop(face, face_thread, n){
+        node = F_NODE(face, face_thread, n);
+        if (NODE_MARK(node) == 12345){
+          NODE_MARK(node) = 1;  /*Set node to need update*/
+          for (dim=0; dim < ND_ND; dim++){
+            coords[dim] = NODE_COORD(node)[dim];
+            initial_coords[array_index*ND_ND+dim] = coords[dim];
+          }
+          node_index = precicec_setMeshVertex(meshID,coords);
+          displ_indices[array_index] = node_index;
+          array_index++;
+        }
+      }
+    }
+  } end_f_loop(face, face_thread);
+  printf("  (%d) Set %d (of %d) displacement read positions ...\n", myid,
+          array_index - wet_nodes_size + dynamic_thread_node_size[thread_index],
+          dynamic_thread_node_size[thread_index]);
+
+  if (thread_index == dynamic_thread_size - 1){
+    did_gather_read_positions = BOOL_TRUE;
+  }
+  printf("(%d) Leaving set_mesh_positions()\n", myid);
+}
+
 void gather_read_positions(Dynamic_Thread* dt)
 {
   printf("(%d) Entering gather_read_positions()\n", myid);
@@ -546,10 +627,6 @@ void gather_read_positions(Dynamic_Thread* dt)
             coords[dim] = NODE_COORD(node)[dim];
             initial_coords[array_index*ND_ND+dim] = coords[dim];
           }
-          /*if (array_index < 10){
-            printf("  (%d) initial coord %.16E\n", myid, initial_coords[array_index*ND_ND]);
-            fflush(stdout);
-          }*/
           node_index = precicec_setMeshVertex(meshID,coords);
           displ_indices[array_index] = node_index;
           array_index++;
@@ -599,13 +676,6 @@ void read_displacements(Dynamic_Thread* dt)
           node = F_NODE(face, face_thread, n);
           if (NODE_POS_NEED_UPDATE(node)){
             NODE_POS_UPDATED(node);
-            /*if (i < 4){
-              printf("  (%d) init %.16E, %.16E\n", myid, initial_coords[i],
-                     initial_coords[i+1]);
-              printf("  (%d) displ %.16E, %.16E\n", myid, displacements[i],
-                     displacements[i+1]);
-              fflush(stdout);
-            }*/
             for (dim=0; dim < ND_ND; dim++){
               NODE_COORD(node)[dim] = initial_coords[i+dim] + displacements[i+dim];
               /* displacements[i+dim] = NODE_COORD(node)[dim] - NODE_COORD_N(node)[dim];  store delta for rbf mesh motion */
