@@ -96,6 +96,11 @@ void fsi_init(Domain* domain)
   precicec_createSolverInterface("Fluent", "precice-config.xml",
                                 precice_process_id, comm_size);
 
+  count_dynamic_threads();
+
+  /* Set coupling mesh */
+  set_mesh_positions(domain);
+
   Message("  (%d) Initializing coupled simulation\n", myid);
   timestep_limit = precicec_initialize();
   Message("  (%d) Initialization done\n", myid);
@@ -116,9 +121,6 @@ void fsi_init(Domain* domain)
   else {
     Message("  (%d) Explicit coupling\n", myid);
   }
-
-  /* Set coupling mesh */
-  set_mesh_positions(domain);
   
   Message("  (%d) Synchronizing Fluent processes\n", myid);
   PRF_GSYNC();
@@ -208,7 +210,9 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #if !RP_HOST
 
   printf("\n(%d) Entering GRID_MOTION\n", myid);
+
   int meshID = precicec_getMeshID("stationery_flexi_bottom");
+
   int current_thread_size = -1;
 
   #if !RP_HOST /* Serial or node */
@@ -515,7 +519,10 @@ void gather_write_positions()
 }
 
 void set_mesh_positions(Domain* domain)
-{
+{	
+  /* Only the host process (Rank 0) handles grid motion and displacement calculations */
+  #if !RP_HOST
+
   printf("(%d) Entering set_mesh_positions()\n", myid);
   Thread* face_thread  = NULL;
   Dynamic_Thread* dynamic_thread = NULL;
@@ -526,7 +533,7 @@ void set_mesh_positions(Domain* domain)
   double coords[ND_ND];
   int meshID = precicec_getMeshID("stationery_flexi_bottom");
   
-    if (domain->dynamic_threads == NULL){
+  if (domain->dynamic_threads == NULL){
     Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
     exit(1);
   }
@@ -538,17 +545,16 @@ void set_mesh_positions(Domain* domain)
     fflush(stdout);
     exit(1);
   }
-
+  
   /* Count not yet as updated (from other threads) marked nodes */
   begin_f_loop(face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
-      f_node_loop (face, face_thread, n){
-        node = F_NODE ( face, face_thread, n );
-        if (NODE_POS_NEED_UPDATE(node)){
-          NODE_MARK(node) = 12345;
-          wet_nodes_size++;
-          dynamic_thread_node_size[thread_index]++;
-        }
+      f_node_loop(face, face_thread, n){
+        node = F_NODE(face, face_thread, n);
+        printf("Detecting node with x: %f y: %f\n", NODE_X(node), NODE_Y(node));
+        NODE_MARK(node) = 12345;
+        wet_nodes_size++;
+        dynamic_thread_node_size[thread_index]++;
       }
     }
   } end_f_loop(face, face_thread);
@@ -570,6 +576,7 @@ void set_mesh_positions(Domain* domain)
             initial_coords[array_index*ND_ND+dim] = coords[dim];
           }
           node_index = precicec_setMeshVertex(meshID,coords);
+          printf(" node_index(%d) for meshID: %d is set\n",node_index,meshID);
           displ_indices[array_index] = node_index;
           array_index++;
         }
@@ -584,6 +591,8 @@ void set_mesh_positions(Domain* domain)
     did_gather_read_positions = BOOL_TRUE;
   }
   printf("(%d) Leaving set_mesh_positions()\n", myid);
+  
+  #endif /* !RP_HOST  */
 }
 
 void gather_read_positions(Dynamic_Thread* dt)
