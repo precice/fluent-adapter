@@ -105,11 +105,6 @@ void fsi_init(Domain* domain)
   timestep_limit = precicec_initialize();
   Message("  (%d) Initialization done\n", myid);
 
-  #if !RP_HOST
-  /* There might be several face threads forming the wet surface */
-  count_dynamic_threads();
-  #endif /* ! RP_HOST */
-
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
     Message("  (%d) Implicit coupling\n", myid);
     #if !RP_NODE
@@ -215,7 +210,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 
   int current_thread_size = -1;
 
-  #if !RP_HOST /* Serial or node */
   if (thread_index == dynamic_thread_size){
     printf ("Reset thread index\n");
     thread_index = 0;
@@ -247,7 +241,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     }
   }
   */
-  #endif /* !RP_HOST */
 
   if (skip_grid_motion){
     if (thread_index >= dynamic_thread_size-1){
@@ -258,28 +251,28 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     return;
   }
 
-  #if !RP_HOST
   SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
-  #endif /* !RP_HOST */
 
-  #if !RP_HOST /* Serial or node */
   read_displacements(dt);
   thread_index++;
-  #endif /* !RP_HOST */
 
   #if !RP_NODE
+
   Message("  (%d) convergence=%d, iterate=%d, couplingOngoing=%d\n",
           myid, RP_Get_Integer("udf/convergence"), RP_Get_Integer("udf/iterate"),
           precicec_isCouplingOngoing());
   if (RP_Get_Integer("udf/convergence") && RP_Get_Integer("udf/iterate") && precicec_isCouplingOngoing()){
     RP_Set_Integer("udf/convergence", BOOL_FALSE);
   }
+
   #endif /* !RP_NODE */
+
   if (! precicec_isCouplingOngoing()){
     precicec_finalize();
   }
 
   printf("(%d) Leaving GRID_MOTION\n", myid);
+
   #endif /* !RP_HOST  */
 }
 
@@ -378,7 +371,7 @@ void count_dynamic_threads()
   int node_index, i=0;
   Node* node = NULL;
 
-  Message( "  (%d) counting dynamic threads: ", myid);
+  Message( "  (%d) counting dynamic threads:\n", myid);
   domain = Get_Domain(1);
   if (domain == NULL){
     Message("  (%d) ERROR: domain == NULL\n", myid);
@@ -539,19 +532,18 @@ void set_mesh_positions(Domain* domain)
   }
   dynamic_thread = domain->dynamic_threads;
 
-  face_thread  = DT_THREAD(dynamic_thread);
+  face_thread = DT_THREAD(dynamic_thread);
   if (face_thread == NULL){	
 	printf("  (%d) ERROR: face_thread == NULL\n", myid);
     fflush(stdout);
     exit(1);
   }
   
-  /* Count not yet as updated (from other threads) marked nodes */
+  /* Count number of interface vertices and dynamic_thread_node_size */
   begin_f_loop(face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop(face, face_thread, n){
         node = F_NODE(face, face_thread, n);
-        printf("Detecting node with x: %f y: %f\n", NODE_X(node), NODE_Y(node));
         NODE_MARK(node) = 12345;
         wet_nodes_size++;
         dynamic_thread_node_size[thread_index]++;
@@ -559,37 +551,37 @@ void set_mesh_positions(Domain* domain)
     }
   } end_f_loop(face, face_thread);
 
-  /* Get initial coordinates and reset update marking */
   printf("  (%d) Setting %d initial positions ...\n", myid, wet_nodes_size);
-  initial_coords = (double*) realloc(initial_coords, wet_nodes_size * ND_ND * sizeof(double));
-  displacements = (double*) realloc(displacements, wet_nodes_size * ND_ND * sizeof(double));
-  displ_indices = (int*) realloc(displ_indices, wet_nodes_size * sizeof(int));
+
+  /* Providing mesh information to preCICE */
+  initial_coords = (double*) malloc(initial_coords, wet_nodes_size * ND_ND * sizeof(double));
+  displacements = (double*) malloc(displacements, wet_nodes_size * ND_ND * sizeof(double));
+  displ_indices = (int*) malloc(displ_indices, wet_nodes_size * sizeof(int));
   array_index = wet_nodes_size - dynamic_thread_node_size[thread_index];
+  
   begin_f_loop (face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop(face, face_thread, n){
         node = F_NODE(face, face_thread, n);
         if (NODE_MARK(node) == 12345){
           NODE_MARK(node) = 1;  /*Set node to need update*/
-          for (dim=0; dim < ND_ND; dim++){
+          for (dim = 0; dim < ND_ND; dim++){
             coords[dim] = NODE_COORD(node)[dim];
             initial_coords[array_index*ND_ND+dim] = coords[dim];
           }
           node_index = precicec_setMeshVertex(meshID,coords);
-          printf(" node_index(%d) for meshID: %d is set\n",node_index,meshID);
           displ_indices[array_index] = node_index;
+          printf("displ_indices(%d) set to %d\n",array_index,node_index);
           array_index++;
         }
       }
     }
   } end_f_loop(face, face_thread);
+  
   printf("  (%d) Set %d (of %d) displacement read positions ...\n", myid,
           array_index - wet_nodes_size + dynamic_thread_node_size[thread_index],
           dynamic_thread_node_size[thread_index]);
 
-  if (thread_index == dynamic_thread_size - 1){
-    did_gather_read_positions = BOOL_TRUE;
-  }
   printf("(%d) Leaving set_mesh_positions()\n", myid);
   
   #endif /* !RP_HOST  */
@@ -659,7 +651,7 @@ void gather_read_positions(Dynamic_Thread* dt)
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
-  int meshID = precicec_getMeshID("stationey_flexi_bottom");
+  int meshID = precicec_getMeshID("stationery_flexi_bottom");
   int displID = precicec_getDataID("Displacements", meshID);
   int offset = 0;
   int i = 0, n = 0, dim = 0;
@@ -674,8 +666,10 @@ void read_displacements(Dynamic_Thread* dt)
     for (i = 0; i < thread_index; i++){
       offset += dynamic_thread_node_size[i];
     }
+    printf("data size for readBlockVectorData = %d\n",dynamic_thread_node_size[thread_index]);
     precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         displ_indices + offset, displacements + ND_ND * offset);
+	printf("After readBlockVectorData\n");
 
     Message("  (%d) Setting displacements...\n", myid);
     i = offset * ND_ND;
@@ -687,7 +681,6 @@ void read_displacements(Dynamic_Thread* dt)
             NODE_POS_UPDATED(node);
             for (dim=0; dim < ND_ND; dim++){
               NODE_COORD(node)[dim] = initial_coords[i+dim] + displacements[i+dim];
-              /* displacements[i+dim] = NODE_COORD(node)[dim] - NODE_COORD_N(node)[dim];  store delta for rbf mesh motion */
               if (fabs(displacements[i+dim]) > fabs(max_displ_delta)){
                 max_displ_delta = displacements[i + dim];
               }
