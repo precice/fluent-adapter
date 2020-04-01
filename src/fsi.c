@@ -544,7 +544,6 @@ void set_mesh_positions(Domain* domain)
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop(face, face_thread, n){
         node = F_NODE(face, face_thread, n);
-        NODE_MARK(node) = 12345;
         wet_nodes_size++;
         dynamic_thread_node_size[thread_index]++;
       }
@@ -554,29 +553,30 @@ void set_mesh_positions(Domain* domain)
   printf("  (%d) Setting %d initial positions ...\n", myid, wet_nodes_size);
 
   /* Providing mesh information to preCICE */
-  initial_coords = (double*) malloc(initial_coords, wet_nodes_size * ND_ND * sizeof(double));
-  displacements = (double*) malloc(displacements, wet_nodes_size * ND_ND * sizeof(double));
-  displ_indices = (int*) malloc(displ_indices, wet_nodes_size * sizeof(int));
+  initial_coords = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
+  displacements = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
+  displ_indices = (int*) malloc(wet_nodes_size * sizeof(int));
   array_index = wet_nodes_size - dynamic_thread_node_size[thread_index];
   
   begin_f_loop (face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop(face, face_thread, n){
-        node = F_NODE(face, face_thread, n);
-        if (NODE_MARK(node) == 12345){
-          NODE_MARK(node) = 1;  /*Set node to need update*/
-          for (dim = 0; dim < ND_ND; dim++){
-            coords[dim] = NODE_COORD(node)[dim];
+		node = F_NODE(face, face_thread, n);
+        NODE_MARK(node) = 1;  /*Set node to need update*/
+        for (dim = 0; dim < ND_ND; dim++){
+			coords[dim] = NODE_COORD(node)[dim];
             initial_coords[array_index*ND_ND+dim] = coords[dim];
-          }
-          node_index = precicec_setMeshVertex(meshID,coords);
-          displ_indices[array_index] = node_index;
-          printf("displ_indices(%d) set to %d\n",array_index,node_index);
-          array_index++;
         }
+        node_index = precicec_setMeshVertex(meshID,coords);
+        displ_indices[array_index] = node_index;
+        array_index++;
       }
     }
   } end_f_loop(face, face_thread);
+  
+  for (int i = 0; i < array_index; i++) {
+	  printf("displ_indices[%d] = %d\n",i,displ_indices[i]);
+  }
   
   printf("  (%d) Set %d (of %d) displacement read positions ...\n", myid,
           array_index - wet_nodes_size + dynamic_thread_node_size[thread_index],
