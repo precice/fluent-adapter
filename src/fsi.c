@@ -206,7 +206,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 
   printf("\n(%d) Entering GRID_MOTION\n", myid);
 
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
 
   int current_thread_size = -1;
 
@@ -424,7 +424,7 @@ void gather_write_positions()
 {
   printf("(%d) Entering gather_write_positions()\n", myid);
   #if !RP_HOST
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
   int i = 0;
   double center[ND_ND];
   Domain* domain = NULL;
@@ -524,7 +524,7 @@ void set_mesh_positions(Domain* domain)
   int n = 0, dim = 0;
   int array_index = 0, node_index = 0;
   double coords[ND_ND];
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
   
   if (domain->dynamic_threads == NULL){
     Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
@@ -596,7 +596,7 @@ void gather_read_positions(Dynamic_Thread* dt)
   int n = 0, dim = 0;
   int array_index = 0, node_index = 0;
   double coords[ND_ND];
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
 
   /* Count not yet as updated (from other threads) marked nodes */
   begin_f_loop(face, face_thread){
@@ -651,7 +651,7 @@ void gather_read_positions(Dynamic_Thread* dt)
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
   int displID = precicec_getDataID("Displacements", meshID);
   int offset = 0;
   int i = 0, n = 0, dim = 0;
@@ -700,7 +700,7 @@ void read_displacements(Dynamic_Thread* dt)
  */
 void write_forces()
 {
-  int meshID = precicec_getMeshID("stationery_flexi_bottom");
+  int meshID = precicec_getMeshID("moving_base");
   int forceID = precicec_getDataID("Forces", meshID);
   int i=0, j=0;
   Domain* domain = NULL;
@@ -861,7 +861,7 @@ void regather_read_positions(Dynamic_Thread* dt, int thread_new_size)
   Thread* face_thread = DT_THREAD(dt);
   Node* node;
   face_t face;
-  int meshID = precicec_getMeshID("WetSurface");
+  int meshID = precicec_getMeshID("moving_base");
   int all_size = 100;/*precicec_getReadNodesSize(meshID);    TODO: read mesh size from Fluent, 100 is just a dummy value!*/
   int displID = precicec_getDataID("Displacements", meshID);
   double* new_coords = (double*) malloc(thread_new_size * ND_ND * sizeof(double));
