@@ -56,15 +56,6 @@ void write_forces();
 void read_displacements(Dynamic_Thread* dt);
 int check_write_positions();
 int check_read_positions(Dynamic_Thread* dt);
-
-/* Forward declarations of functions related to remeshing
-void gather_write_positions();
-void gather_read_positions(Dynamic_Thread* dt);
-
-void regather_read_positions(Dynamic_Thread* dt, int this_thread_size);
-void regather_write_positions(int current_size);
-*/
-
 void set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
@@ -140,32 +131,17 @@ void fsi_write_and_advance()
 
   printf("(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int ongoing;
-  int subcycling = ! precicec_isWriteDataRequired(CURRENT_TIMESTEP);
+  int subcycling = !precicec_isWriteDataRequired(CURRENT_TIMESTEP);
   int current_size = -1;
 
-  /*Message("  (%d) write_and_advance 1\n", myid);*/
   if (subcycling){
     Message("  (%d) In subcycle, skip writing\n", myid);
   }
   else {
-    if (!did_gather_write_positions){
-      Message("  (%d) Gather write positions\n", myid);
-      gather_write_positions();
-    }
-    else {
-      /* Write positions can change in parallel mode when load-balancing occurs */
-      current_size = check_write_positions();
-      if (current_size != -1){
-        regather_write_positions(current_size);
-      }
-    }
-    #if !RP_HOST
     if (wet_edges_size){
       write_forces();
     }
-    #endif
   }
-  /*Message("  (%d) write_and_advance 2\n", myid);*/
 
   timestep_limit = precicec_advance(CURRENT_TIMESTEP);
 
@@ -210,9 +186,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #if !RP_HOST
 
   printf("\n(%d) Entering GRID_MOTION\n", myid);
-
-  int meshID = precicec_getMeshID("moving_base");
-
   int current_thread_size = -1;
 
   if (thread_index == dynamic_thread_size){
@@ -231,21 +204,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     printf("  (%d) ERROR: face_thread == NULL\n", myid);
     exit(1);
   }
-
-  /*
-   * Commenting this out as preCICE does not support dynamic meshes yet.
-   * Mesh allocation needs to happen only once at the beginning
-  if (!did_gather_read_positions){
-    gather_read_positions(dt);
-  }
-  else {
-    /* Read positions can change in parallel mode when load-balancing occurs
-    current_thread_size = check_read_positions(dt);
-    if (current_thread_size != -1){
-      regather_read_positions(dt, current_thread_size);
-    }
-  }
-  */
 
   if (skip_grid_motion){
     if (thread_index >= dynamic_thread_size-1){
@@ -435,8 +393,7 @@ void set_mesh_positions(Domain* domain)
   Dynamic_Thread* dynamic_thread = NULL;
   Node* node;
   face_t face;
-  int n = 0, dim = 0;
-  int array_index = 0, node_index = 0;
+  int n = 0, dim = 0, array_index = 0;
   int meshID = precicec_getMeshID("moving_base");
 
   if (domain->dynamic_threads == NULL){
@@ -484,6 +441,11 @@ void set_mesh_positions(Domain* domain)
     }
   } end_f_loop(face, face_thread);
 
+  for (int i=0; i<wet_nodes_size; i++) {
+    printf("initial_coords[%d] = (%f, %f)\n", i, initial_coords[i],
+            initial_coords[i+1]);
+  }
+
   precicec_setMeshVertices(meshID, wet_nodes_size, initial_coords, displ_indices);
 
   printf("  (%d) Set %d (of %d) mesh positions ...\n", myid,
@@ -521,26 +483,27 @@ void read_displacements(Dynamic_Thread* dt)
         displ_indices + offset, displacements + ND_ND * offset);
 	printf("After readBlockVectorData\n");
 
-    Message("  (%d) Setting displacements...\n", myid);
-    i = offset * ND_ND;
-    begin_f_loop (face, face_thread){
-      if (PRINCIPAL_FACE_P(face,face_thread)){
-        f_node_loop (face, face_thread, n){
-          node = F_NODE(face, face_thread, n);
-          if (NODE_POS_NEED_UPDATE(node)){
-            NODE_POS_UPDATED(node);
-            for (dim=0; dim < ND_ND; dim++){
-              NODE_COORD(node)[dim] = initial_coords[i+dim] + displacements[i+dim];
-              if (fabs(displacements[i+dim]) > fabs(max_displ_delta)){
-                max_displ_delta = displacements[i + dim];
-              }
+  Message("  (%d) Setting displacements...\n", myid);
+  i = offset * ND_ND;
+  begin_f_loop (face, face_thread){
+    if (PRINCIPAL_FACE_P(face,face_thread)){
+      f_node_loop (face, face_thread, n){
+        node = F_NODE(face, face_thread, n);
+        if (NODE_POS_NEED_UPDATE(node)){
+          NODE_POS_UPDATED(node);
+          for (dim=0; dim < ND_ND; dim++){
+            /* NODE_COORD(node)[dim] = initial_coords[i+dim] + displacements[i+dim]; */
+            if (fabs(displacements[i+dim]) > fabs(max_displ_delta)){
+              max_displ_delta = displacements[i + dim];
             }
-            i += ND_ND;
           }
+          i += ND_ND;
         }
       }
-    } end_f_loop (face, face_thread);
-    Message("  (%d) ...done\n", myid);
+    }
+  } end_f_loop (face, face_thread);
+
+  Message("  (%d) ...done\n", myid);
   }
   Message("  (%d) Max displacement delta: %f\n", myid, max_displ_delta);
 }
