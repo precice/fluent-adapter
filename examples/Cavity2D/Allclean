@@ -1,0 +1,11 @@
+#!/bin/bash
+
+
+echo "Cleaning logs and output files from previous runs..."
+
+rm -fv -r precice-run/
+
+rm -fv *.log \
+      *.sh
+
+echo "Cleaning successful!"
