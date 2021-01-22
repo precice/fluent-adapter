@@ -1,9 +1,9 @@
 # preCICE-adapter for the CFD code ANSYS Fluent
 *Developed by Bernhard Gatzhammer and valid for FLUENT 19.5 and preCICE v2.2 on Ubuntu 20.04*
-*Updates and maintenance done by Ishaan Desai*
+*Updated and maintained done by Ishaan Desai*
 
 ## 1. How to build the Fluent-preCICE adapter:
-  * Adapt `lnamd64/2d_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
+  * Adapt `lnamd64/2ddp_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
   * The variable SOURCES needs one main udf file and the correspoding .c files:
     + fsi_udf.c: This is the main ANSYS readable file used by Fluent to call functions during each iteration
                  for FSI simulations. This ANSYS UDF file needs fsi.c and fsi.h for execution
