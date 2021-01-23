@@ -21,9 +21,9 @@
 
   ### 2.1 Installation using ANSYS GUI
   * Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
-  * The installation hangs between 80-90%
-  * Close partially completed installation
-  * If the error: `undefined symbol: FT_Done_MM_Var` is encountered, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution
+  * The installation hangs between 80-90%. Close partially completed installation
+  * All ANSYS packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The FLUENT executable is located at `/ansys_inc/vXXX/fluent/bin`
+  * If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting FLUENT, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution
   * Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9
 
   ### 2.2 Running FLUENT (ANSYS Version 2019 R3) on Ubuntu 16.04
