@@ -3,14 +3,9 @@
 *Updated and maintained done by Ishaan Desai*
 
 ## 1. How to build the Fluent-preCICE adapter:
-  * Adapt `lnamd64/2ddp_host/user.udf` line 1 "CSOURCES=...": There are several main udf files
-  * The variable SOURCES needs one main udf file and the correspoding .c files:
-    + fsi_udf.c: This is the main ANSYS readable file used by Fluent to call functions during each iteration
-                 for FSI simulations. This ANSYS UDF file needs fsi.c and fsi.h for execution
-  * Adapt `lnamd64/2d_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation
-    folder which will be of the type `./ansys_inc/v195/fluent`
-  * Repeat the above steps for `lnamd64/2d_node` folder in the exact same manner
-  * Adapt the path of the python library in `src/makefile` line 19.  
+  * Adapt `lnamd64/2ddp_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation (for example: `/home/myusername/ansys_inc/v195/fluent`, if you installed Fluent, Ansys 2019 R3, into your home directory).
+  * Repeat the step above for `lnamd64/2ddp_node` folder in the exact same manner.
+  * Adapt the path of the python library in `src/makefile` line 19. (**TODO** Where is the makefile? How do I get the makefile?)
     **NOTE**: Python shared library is available within the ANSYS installation. Example path is: `/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so`   
   * Update the ANSYS Release version in `src/makefile` line 26
     Example of line 26: `RELEASE=19.5.0`
