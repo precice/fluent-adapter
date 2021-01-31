@@ -17,23 +17,45 @@
   * Type: `make "FLUENT_ARCH=lnamd64"` to start the build
   * Use `make clean` to clean build process
 
-## 2. Running FLUENT (ANSYS version 2019 R3) on Ubuntu 20.04
+## 2. Running FLUENT
 
-  ### 2.1 Installation using ANSYS GUI
-  * Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
-  * The installation hangs between 80-90%. Close partially completed installation
-  * All ANSYS packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The FLUENT executable is located at `/ansys_inc/vXXX/fluent/bin`
-  * If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting FLUENT, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution
-  * Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9
+### 2.1 Installation using ANSYS GUI
 
-  ### 2.2 Running FLUENT (ANSYS Version 2019 R3) on Ubuntu 16.04
-  * All packages ANSYS Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process
+**General remarks**
 
-  ### 2.3 How to start Fluent without GUI
-  * serial:   `fluent 2ddp -g < steer-fluent.txt`
-  * parallel: `fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt`
-    (-t4 sets 4 processes for computations)
-    (steer-fluent.txt is a driver file for Fluent and is only written for convenience)
+* Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2)
+* Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3)
+* Make sure to test your installation by starting fluent (see below). If fluent crashes, see the troubleshooting hints.
+
+**ANSYS version 2020 R2 on Ubuntu 20.04**
+
+* Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+* The installation hangs between 80-90%. Close partially completed installation
+
+**ANSYS version 2019 R3 on Ubuntu 20.04**
+
+* Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+* The installation completes successfully.
+
+**ANSYS Version 2019 R3 on Ubuntu 16.04**
+
+* All packages of ANSYS Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process.
+
+**Troubleshooting**
+
+* If you try to start fluent via `fluent 2ddp` and the program exits with the error `Bad substitution`, the following [forum post}(https://www.cfd-online.com/Forums/fluent/149668-fluent-16-0-0-ubuntu-12-04-a.html) provides a solution. Short: `sudo dpkg-reconfigure dash`, answer **No** to the questions "Use dash as the default system shell (/bin/sh)?".
+* If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting FLUENT, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution
+
+### 2.2 How to start Fluent
+
+**with GUI**
+
+* All ANSYS packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The FLUENT executable is located at `/ansys_inc/vXXX/fluent/bin`
+
+**without GUI**
+
+* serial:   `fluent 2ddp -g < steer-fluent.txt`
+* parallel: `fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt` (-t4 sets 4 processes for computations, steer-fluent.txt is a driver file for Fluent and is only written for convenience)
 
 --------------------------------------------------------------------------------
 
