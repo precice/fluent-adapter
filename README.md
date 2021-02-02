@@ -5,10 +5,15 @@
 ## 1. How to build the Fluent-preCICE adapter:
   * Adapt `lnamd64/2ddp_host/user.udf` line 3 `FLUENT_INC = ...` to the fluent installation (for example: `/home/myusername/ansys_inc/v195/fluent`, if you installed Fluent, Ansys 2019 R3, into your home directory).
   * Repeat the step above for `lnamd64/2ddp_node` folder in the exact same manner.
-  * Adapt the path of the python library in `src/makefile` line 19. (**TODO** Where is the makefile? How do I get the makefile?)
-    **NOTE**: Python shared library is available within the ANSYS installation. Example path is: `/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so`   
-  * Update the ANSYS Release version in `src/makefile` line 26
-    Example of line 26: `RELEASE=19.5.0`
+  * create two makefiles: `./Makefile` and `src/makefile` (instructions how to do this will follow).
+  * Replace line 20 of `src/makefile` with:
+      ```
+      USER_OBJECTS=`pkg-config --cflags --libs libprecice`  /home/myusername/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so
+      ```
+    This provides the path of the preCICE library and of python to the build process of the adapter.
+  * Update the ANSYS Release version in `src/makefile` line 28
+    Example of line 28: `RELEASE=19.5.0`
+  * Copy `src/makefile` into `lnamd64/2ddp_node` and `lnamd64/2ddp_host`
   * Type: `make "FLUENT_ARCH=lnamd64"` to start the build
   * Use `make clean` to clean build process
 
