@@ -92,7 +92,7 @@ void fsi_init(Domain* domain)
   precicec_createSolverInterface("Fluent", "precice-config.xml",
                                 precice_process_id, comm_size);
 
-  count_dynamic_threads();
+  // count_dynamic_threads();
 
   /* Set coupling mesh */
   set_mesh_positions(domain);
@@ -239,150 +239,6 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #endif /* !RP_HOST  */
 }
 
-/* Helper function to plot FSI coordinates (not related to preCICE
- * functionality) */
-void fsi_plot_coords()
-{
-  printf("(%d) Entering ON_DEMAND(plot_coords)\n", myid);
-
-  #if !RP_HOST
-  int i=0, n=0;
-  Domain* domain = NULL;
-  Dynamic_Thread* dynamic_thread = NULL;
-  Thread* face_thread = NULL;
-  face_t face;
-  Node* node = NULL;
-
-  domain = Get_Domain(1);
-  if (domain == NULL){
-    printf("  (%d) ERROR: domain == NULL\n", myid);
-    fflush(stdout);
-    exit(1);
-  }
-  if (domain->dynamic_threads == NULL){
-    printf("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
-    fflush(stdout);
-    exit(1);
-  }
-  dynamic_thread = domain->dynamic_threads;
-  while (dynamic_thread != NULL){
-    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      face_thread  = DT_THREAD(dynamic_thread);
-      if (face_thread == NULL){
-        printf("  (%d) ERROR: face_thread == NULL\n", myid);
-        fflush(stdout);
-        exit(1);
-      }
-      begin_f_loop (face, face_thread){
-        if (PRINCIPAL_FACE_P(face,face_thread)){
-          f_node_loop (face, face_thread, n){
-            node = F_NODE ( face, face_thread, n );
-            if ((NODE_MARK(node) != 0) && ((NODE_MARK(node) != 1234))){
-              printf("  (%d) ERROR: Unexpected node mark!\n", myid);
-              fflush(stdout);
-              exit(1);
-            }
-            if (NODE_MARK(node) != 1234){
-              NODE_MARK(node) = 1234;
-              /*if (i < 2){*/
-                /*Message("coords: %.16E, %.16E\n", NODE_COORD(node)[0], NODE_COORD(node)[1]);*/
-                /*fflush(stdout);*/
-              /*}*/
-              i++;
-            }
-          }
-        }
-      } end_f_loop(face, face_thread);
-    }
-    dynamic_thread = dynamic_thread->next;
-  }
-
-  /* Reset node mark */
-  while (dynamic_thread != NULL){
-    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      face_thread  = DT_THREAD(dynamic_thread);
-      if (face_thread == NULL){
-        printf("  (%d) ERROR: face_thread == NULL\n", myid);
-        fflush(stdout);
-        exit(1);
-      }
-      begin_f_loop (face, face_thread){
-        if (PRINCIPAL_FACE_P(face,face_thread)){
-          f_node_loop (face, face_thread, n){
-            node = F_NODE ( face, face_thread, n );
-            if (NODE_MARK(node) == 1234){
-              NODE_MARK(node) = 0;
-            }
-          }
-        }
-      } end_f_loop(face, face_thread);
-    }
-    dynamic_thread = dynamic_thread->next;
-  }
-  #endif /* ! RP_HOST */
-
-  printf("(%d) Leaving ON_DEMAND(plot_coords)\n", myid);
-}
-
-void count_dynamic_threads()
-{
-  printf("(%d) Entering count_dynamic_threads()\n", myid);
-  Domain *domain = NULL;
-  Dynamic_Thread* dynamic_thread = NULL;
-  Thread* face_thread = NULL;
-  face_t face;
-  int node_index, i=0;
-  Node* node = NULL;
-
-  Message( "  (%d) counting dynamic threads:\n", myid);
-  domain = Get_Domain(1);
-  if (domain == NULL){
-    Message("  (%d) ERROR: domain == NULL\n", myid);
-    exit(1);
-  }
-  if (domain->dynamic_threads == NULL){
-    Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
-    exit (1);
-  }
-  dynamic_thread = domain->dynamic_threads;
-  while (dynamic_thread != NULL){
-    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      face_thread  = DT_THREAD(dynamic_thread);
-      begin_f_loop (face, face_thread){ /* Thread face loop */
-        if (PRINCIPAL_FACE_P(face,face_thread)){
-          f_node_loop (face, face_thread, node_index){ /* Face node loop */
-            node = F_NODE(face, face_thread, node_index);
-            NODE_MARK(node) = 11111;
-          }
-        }
-      } end_f_loop(face, face_thread)
-      dynamic_thread_size++;
-    }
-    dynamic_thread = dynamic_thread->next;
-  }
-  dynamic_thread_node_size = (int*) malloc(dynamic_thread_size * sizeof(int));
-  for (i=0;  i < dynamic_thread_size; i++){
-    dynamic_thread_node_size[i] = 0;
-  }
-
-  /* Reset node marks */
-  dynamic_thread = domain->dynamic_threads;
-  while (dynamic_thread != NULL){
-    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      face_thread  = DT_THREAD(dynamic_thread);
-      begin_f_loop (face, face_thread){ /* Thread face loop */
-        f_node_loop (face, face_thread, node_index){ /* Face node loop */
-          node = F_NODE(face, face_thread, node_index);
-          NODE_MARK(node) = 0;
-        }
-      } end_f_loop(face, face_thread)
-    }
-    dynamic_thread = dynamic_thread->next;
-  }
-  printf("  (%d) ... %d\n", myid, dynamic_thread_size);
-  printf("(%d) Leaving count_dynamic_threads()\n", myid);
-}
-
 void set_mesh_positions(Domain* domain)
 {
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
@@ -414,6 +270,7 @@ void set_mesh_positions(Domain* domain)
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop(face, face_thread, n){
         node = F_NODE(face, face_thread, n);
+        printf("Count of wet_nodes_size = %d\n", wet_nodes_size);
         wet_nodes_size++;
         dynamic_thread_node_size[thread_index]++;
       }

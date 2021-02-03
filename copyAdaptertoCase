@@ -1,0 +1,9 @@
+#!/bin/bash
+export FLUENT_CASE_DIR=$HOME/fluent-adapter/examples/Cavity2D
+
+echo "Copying pre-compiled UDFs to FLUENT case directory..."
+
+cp -r lnamd64/ $FLUENT_CASE_DIR/libudf/
+cp -r src/ $FLUENT_CASE_DIR/libudf/
+
+echo "Copying successful!"
