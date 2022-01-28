@@ -1,5 +1,4 @@
-# Invoke serial fluent by: fluent 2ddp -g < steer-fluent.txt
-# Invoke parallel fluent (4 procs) by: fluent 2ddp -t4 -mpi=openmpi < steer-fluent.txt
+; commands to send to Fluent to initialize and solve FSI analysis
 
 rc Cavity2D.cas
 
