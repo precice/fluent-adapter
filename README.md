@@ -219,7 +219,7 @@ Do not attempt to define both the `OPENMPI_ROOT` and `INTELMPI_ROOT` environment
 will just confuse things.
 
 With this environment variable in place, we can now run fluent with or without the GUI, making sure
-to define the `mpi=` argument such that it aligns with our environment variable definition.
+to define the `-mpi=` argument such that it aligns with our environment variable definition.
 
 **with GUI**
 

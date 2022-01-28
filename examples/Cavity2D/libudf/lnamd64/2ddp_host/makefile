@@ -17,17 +17,19 @@ include user.udf
 # Path of the python lib may vary and needs to be adapted
 # would also be nice to search for it automatically
 
-USER_OBJECTS=`pkg-config --cflags --libs libprecice`  /home/ishaan/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so
+# USER_OBJECTS=`pkg-config --cflags --libs libprecice`  /home/ishaan/ansys_inc/v195/commonfiles/CPython/2_7_15/linx64/Release/python/lib/libpython2.7.so
+USER_OBJECTS=/home/shelf1/motorsports/software/Utilities/install/precice/2.3.0-fluent/lib64/libprecice.so  /opt/Software/ansys/v202/commonfiles/CPython/3_7/linx64/Release/python/lib/libpython3.so
 
 
 #----------------------------------------------------------------------#
 # Build targets (do not modify below this line).
 #----------------------------------------------------------------------#
-CC=cc
+CC=gcc
 SHELL=/bin/sh
-RELEASE=19.5.0
+RELEASE=20.2.0
 VERSION=`basename "\`pwd\`"`
-ARCH=`expr "\`pwd\`" : '.*/\(.*\)/[23].*'`
+#ARCH=`expr "\`pwd\`" : '.*/\(.*\)/[23].*'`
+ARCH=lnamd64
 ARCHC=$(ARCH)
 TARGET=libudf.so
 UDFDATA=udf_names.c
@@ -36,7 +38,8 @@ OBJS1 = $(CSOURCES:.cpp=.o)
 OBJS2 = $(OBJS1:.c=.o)
 OBJECTS= $(UDFDATA:.c=.o) $(OBJS2)
 
-INCLUDES= `pkg-config --cflags libprecice`/precice \
+INCLUDES= -I/home/shelf1/motorsports/software/Utilities/install/precice/2.3.0-fluent/include/precice \
+          -I$(FLUENT_INC)/include \
           -I$(FLUENT_INC)/fluent$(RELEASE)/$(ARCH)/$(VERSION) \
           -I$(FLUENT_INC)/fluent$(RELEASE)/src/main \
           -I$(FLUENT_INC)/fluent$(RELEASE)/src/addon-wrapper \
