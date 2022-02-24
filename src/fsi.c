@@ -25,7 +25,6 @@ int did_gather_read_positions = BOOL_FALSE;
 int thread_index = 0;
 int dynamic_thread_size = 0;
 int wet_edges_size = 0;
-int wet_nodes_size = 0;
 int boundary_nodes_size = 0;
 int deformable_nodes_size = 0;
 int moved_nodes_counter = 0;
@@ -51,7 +50,7 @@ int* precice_displ_ids;
 #endif
 
 /* Forward declarations of helper functions */
-void count_dynamic_threads();
+int count_dynamic_threads();
 void write_forces();
 void read_displacements(Dynamic_Thread* dt);
 int check_write_positions();
@@ -86,14 +85,22 @@ void fsi_init(Domain* domain)
   precice_process_id = 0;
   comm_size = 1;
 
-  Message("  (%d) Creating solver interface\n", myid);
+  printf("  (%d) Creating solver interface\n", myid);
 
   /* temporarily hard coding Solver name and preCICE Config File name  */
   precicec_createSolverInterface("Fluent", "precice-config.xml",
                                 precice_process_id, comm_size);
+  
+  printf("  (%d) Solver interface created\n", myid);
 
-  // count_dynamic_threads();
+  dynamic_thread_size = count_dynamic_threads();
 
+  /* count the dynamic thread node size after calling count_dynamic_threads */
+  dynamic_thread_node_size = (int*) malloc(dynamic_thread_size * sizeof(int));
+  for (int i=0;  i < dynamic_thread_size; i++){
+    dynamic_thread_node_size[i] = 0;
+  }
+  
   /* Set coupling mesh */
   set_mesh_positions(domain);
 
@@ -241,6 +248,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 
 void set_mesh_positions(Domain* domain)
 {
+  int wet_nodes_size = 0;
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
 

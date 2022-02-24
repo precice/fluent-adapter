@@ -5,7 +5,6 @@
   <log enabled="true">
     <sink type="stream" output="stdout"  filter= "%Severity% > trace" format="preCICE:%ColorizedSeverity% %Message%" enabled="true"/>	
     <sink type="file" output="fluentCSM_debug.log" filter="%Severity% >= trace" enabled="true"/>
-    <sink type="file" output="fluentCSM_alldebug.log" filter="" enabled="true"/>
   </log>
 
   <solver-interface dimensions="2">
@@ -29,9 +28,6 @@
       <write-data name="Forces"     mesh="moving_base"/>
       <read-data  name="Displacements" mesh="moving_base"/>
       <mapping:nearest-projection   direction="write" from="moving_base" to="beam" constraint="conservative"/>
-      <!--
-      <mapping:nearest-projection   direction="read"  from="beam" to="moving_base" constraint="consistent"/>
-      -->
     </participant>
 
     <participant name="CSMdummy">

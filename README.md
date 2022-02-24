@@ -11,7 +11,7 @@ be used to:
 * Customize different numerical/physics models being employed: multiphase mixture models,
   discrete phase models, radiation models, chemical reaction models, diffusivity models, etc.
 * Execute code at different stages of a solution: at solution initialization, at every iteration,
-  upon reaching convergnce, etc.
+  upon reaching convergence, etc.
 * Many other things, as long as one can code it in C
 
 ## 0. Fluent UDF Requirements
@@ -85,7 +85,7 @@ libudf
 ------udf_names.o: compiled object file from udf_names.c  
 ------libudf.so: shared library file that Fluent uses  
 
-And the following direcotry structure needs to exist for a 2D, double precision simulation
+And the following directory structure needs to exist for a 2D, double precision simulation
 run in parallel:
 
 
@@ -232,6 +232,12 @@ to define the `-mpi=` argument such that it aligns with our environment variable
 * serial:   `fluent 2ddp -g < steer-fluent.txt`
 * parallel: `fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt` (-t4 sets 4 processes for computations, steer-fluent.txt is a driver file for Fluent and is only written for convenience)
 
+### 2.3 Line-by-Line Debugging UDFs in Fluent
+
+UDFs can be difficult to debug because they are interpreted within Fluent. Sometimes this leads
+to misleading statements and tracebacks upon crashing. Some instructions on how to use gdb to
+step through UDF code line-by-line are found [here](https://www.cfd-online.com/Wiki/Udf_debug)
+
 --------------------------------------------------------------------------------
 
 ## 3. Preparing a Fluent .cas file for UDF function usage:
@@ -277,7 +283,7 @@ Go through the menus on the left and perform the following steps:
       Phase-2-water set the volume fraction UDF
   * Dynamic Mesh:
     + Set the structure boundary to follow the UDF
-    + Set the domain to be deforming/remeshing as needed
+    + Set the domain to be deforming/re-meshing as needed
   * Reference values: Only needed for writing output (since Fluent usese
     dimensionless values)
   * Solution methods:
