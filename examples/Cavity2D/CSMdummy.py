@@ -61,13 +61,13 @@ forces = np.zeros([vertexSize, dim])
 dt = 1.0
 
 precice_dt = interface.initialize()
-    
+
 while interface.is_coupling_ongoing():
-   
+
     if interface.is_action_required(precice.action_write_iteration_checkpoint()):
         print("CSMdummy: Writing iteration checkpoint")
         interface.fulfilled_action(precice.action_write_iteration_checkpoint())
-    
+
     forces = interface.read_block_vector_data(forceIDs, vertexIDs)
 
 #    computeDisplacements(forces,displacements)
@@ -77,12 +77,12 @@ while interface.is_coupling_ongoing():
     interface.write_block_vector_data(displIDs, vertexIDs, displacements)
 
     precice_dt = interface.advance(dt)
-    
+
     if interface.is_action_required(precice.action_read_iteration_checkpoint()):
         print("CSMdummy: Reading iteration checkpoint")
         interface.fulfilled_action(precice.action_read_iteration_checkpoint())
     else:
         print("CSMdummy: advancing in time")
-    
+
 interface.finalize()
 

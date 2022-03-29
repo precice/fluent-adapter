@@ -106,6 +106,16 @@ void fsi_init(Domain* domain)
 
   Message("  (%d) Initializing coupled simulation\n", myid);
   timestep_limit = precicec_initialize();
+  /* Set the solver time step to be the minimum of the precice time step an the
+   * current time step */
+  if (RP_Variable_Exists_P("solve/dt"){
+          char dt = RP_Get_String("solve/dt");
+          gcvt(fmin(timestep_limit, CURRENT_TIMESTEP), 10, dt);
+          RP_Set_String("solve/dt", dt);
+          else {
+          Error("Error reading 'solve/dt' Scheme variable");
+          }
+  }
   Message("  (%d) Initialization done\n", myid);
 
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
