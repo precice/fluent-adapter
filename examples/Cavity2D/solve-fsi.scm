@@ -1,5 +1,6 @@
 (rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000000)
-(ti-menu-load-string "solve/dual-time-iterate 1 0")
+
+(ti-menu-load-string (string-append "solve/dual-time-iterate " (%rpgetvar 'solve/dt) " 0"))
 
 (do () ((= (%rpgetvar 'udf/ongoing) 0))
    (if (= (%rpgetvar 'udf/iterate) 0) 
@@ -18,7 +19,7 @@
          ))
       )
    ))
-   (ti-menu-load-string "solve/dual-time-iterate 1 0")
+   (ti-menu-load-string (string-append "solve/dual-time-iterate " (%rpgetvar 'solve/dt) " 0"))
    (if (= (%rpgetvar 'udf/checkpoint) 1)
    ( begin
       (ti-menu-load-string "file/write-case-data fluent_checkpoint.cas yes")
