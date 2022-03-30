@@ -1,4 +1,4 @@
-CSOURCES= fsi_udf.c fsi.c fsi_corefunctions.c
+CSOURCES= fsi_udf.c fsi.c
 HSOURCES= fsi.h
 FLUENT_INC= /opt/Software/ansys/ansys_inc/v212/fluent
 HOST_FLAGS=-DUSE_UDF_HOST_DUMMY

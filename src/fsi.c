@@ -16,29 +16,28 @@
 #define BOOL_TRUE  1
 #define BOOL_FALSE 0
 
-double timestep_limit = 0.0;
-double* forces = NULL;
-int* force_indices = NULL;
-int skip_grid_motion = BOOL_TRUE;
-int did_gather_write_positions = BOOL_FALSE;
-int did_gather_read_positions = BOOL_FALSE;
+//int did_gather_write_positions = BOOL_FALSE;
+//int did_gather_read_positions = BOOL_FALSE;
+//
+/* GLOBAL VARIABLES */
+int wet_nodes_size = 0;
+int* displ_indices = NULL;
+/* END GLOBAL VARIABLES */
+
 int thread_index = 0;
 int dynamic_thread_size = 0;
 int wet_edges_size = 0;
 int boundary_nodes_size = 0;
 int deformable_nodes_size = 0;
 int moved_nodes_counter = 0;
-double* initial_coords = NULL;
 double* boundary_coords = NULL; /* MESH MOVEMENT */
 double* displacements = NULL;
-int* displ_indices = NULL;
 int* dynamic_thread_node_size = NULL;
 double* c_matrix = NULL;
 double* x_coeff_vector = NULL;
 double* y_coeff_vector = NULL;
 double* b_vector = NULL;
 int* pivots_vector = NULL;
-int comm_size = -1;
 int require_create_checkpoint = BOOL_FALSE;
 int* precice_force_ids; /* Gathered in host node (or serial node) */
 int* precice_displ_ids;
@@ -53,9 +52,9 @@ int* precice_displ_ids;
 int count_dynamic_threads();
 void write_forces();
 void read_displacements(Dynamic_Thread* dt);
-int check_write_positions();
-int check_read_positions(Dynamic_Thread* dt);
-void set_mesh_positions(Domain* domain);
+//int check_write_positions();
+//int check_read_positions(Dynamic_Thread* dt);
+int set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
@@ -63,34 +62,37 @@ void set_mesh_positions(Domain* domain);
  * */
 void fsi_init(Domain* domain)
 {
-  int precice_process_id = -1; /* Process ID given to preCICE */
   printf("\nEntering fsi_init\n");
 
-  /* Only Host Process (Rank 0) handles the coupling interface */
+  int solve_dt_length = 0;
+  char solve_dt[16];
+  int udf_convergence = 1;
+  int udf_iterate = 0;
+
+  /* Only Rank 0 Process handles the coupling interface */
   #if !RP_HOST
+  int solver_process_id = -1;
+  int solver_process_size = 0;
+  double timestep_limit = 0.0;
 
   #if !PARALLEL
-  precice_process_id = 0;
-  comm_size = 1;
+  solver_process_id = 0;
+  solver_process_size = 1;
   #else /* !PARALLEL*/
-  #if RP_HOST
-  precice_process_id = 0;
-  #elif RP_NODE
-  precice_process_id = myid + 1;
-  #endif /* elif RP_NODE */
-  comm_size = compute_node_count + 1;
+  solver_process_id = myid;
+  solver_process_size = compute_node_count;
   #endif /* else !PARALLEL */
 
-  /* Parallel implementation above is bypassed for testing serial version */
-  precice_process_id = 0;
-  comm_size = 1;
-
   printf("  (%d) Creating solver interface\n", myid);
-
-  /* temporarily hard coding Solver name and preCICE Config File name  */
-  precicec_createSolverInterface("Fluent", "precice-config.xml",
-                                precice_process_id, comm_size);
-  
+  /* temporarily hard coding Solver name */
+  if (RP_Variable_Exists_P("udf/config-location")){
+    const char *config_loc = RP_Get_String("udf/config-location");
+    precicec_createSolverInterface("Fluent", config_loc, solver_process_id,
+            solver_process_size);
+  }
+  else {
+    Error("Error reading 'udf/config-location' Scheme variable");
+  }
   printf("  (%d) Solver interface created\n", myid);
 
   dynamic_thread_size = count_dynamic_threads();
@@ -102,39 +104,51 @@ void fsi_init(Domain* domain)
   }
   
   /* Set coupling mesh */
-  set_mesh_positions(domain);
+  wet_nodes_size = set_mesh_positions(domain);
 
-  Message("  (%d) Initializing coupled simulation\n", myid);
+  printf("  (%d) Initializing coupled simulation\n", myid);
   timestep_limit = precicec_initialize();
   /* Set the solver time step to be the minimum of the precice time step an the
    * current time step */
-  if (RP_Variable_Exists_P("solve/dt"){
-          char dt = RP_Get_String("solve/dt");
-          gcvt(fmin(timestep_limit, CURRENT_TIMESTEP), 10, dt);
-          RP_Set_String("solve/dt", dt);
-          else {
-          Error("Error reading 'solve/dt' Scheme variable");
-          }
-  }
-  Message("  (%d) Initialization done\n", myid);
+  sprintf(solve_dt, "%f", fmin(timestep_limit, CURRENT_TIMESTEP));
+  solve_dt_length = strlen(solve_dt);
+  printf("  (%d) Initialization done\n", myid);
+  #endif /* !RP_HOST */
 
+  /* Communicate values from node(s) to host */
+  node_to_host_int_1(solve_dt_length);
+  node_to_host_string(solve_dt,solve_dt_length);
+  #if !RP_NODE
+  if (RP_Variable_Exists_P("solve/dt")){
+    RP_Set_String("solve/dt", solve_dt);
+  }
+  else {
+    Error("Error reading 'solve/dt' Scheme variable");
+  }
+  #endif /* !RP_NODE */
+
+  #if !RP_HOST
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
-    Message("  (%d) Implicit coupling\n", myid);
-    #if !RP_NODE
-    RP_Set_Integer("udf/convergence", BOOL_FALSE);
-    RP_Set_Integer("udf/iterate", BOOL_TRUE);
-    #endif /* ! RP_NODE */
+    printf("  (%d) Implicit coupling\n", myid);
+    udf_convergence = 0;
+    udf_iterate = 1;
     precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
   else {
-    Message("  (%d) Explicit coupling\n", myid);
+    printf("  (%d) Explicit coupling\n", myid);
   }
-
-  Message("  (%d) Synchronizing Fluent processes\n", myid);
+  printf("  (%d) Synchronizing Fluent processes\n", myid);
   PRF_GSYNC();
 
   printf("(%d) Leaving INIT\n", myid);
   #endif /* !RP_HOST */
+  
+  node_to_host_int_2(udf_convergence, udf_iterate);
+
+  #if !RP_NODE
+  RP_Set_Integer("udf/convergence", udf_convergence);
+  RP_Set_Integer("udf/iterate", udf_iterate);
+  #endif /* !RP_NODE */
 }
 
 /* Main function advances the interface time step and provides the mechanism
@@ -143,53 +157,56 @@ void fsi_init(Domain* domain)
  * */
 void fsi_write_and_advance()
 {
+  int ongoing = 1;
+  int udf_convergence = 0;
+  int solve_dt_length = 0;
+  char solve_dt[16];
+
   /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
   #if !RP_HOST
-
-  printf("(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
-  int ongoing;
+  printf("  (%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int subcycling = !precicec_isWriteDataRequired(CURRENT_TIMESTEP);
-  int current_size = -1;
+  double timestep_limit = 0.0;
 
   if (subcycling){
     Message("  (%d) In subcycle, skip writing\n", myid);
   }
   else {
-    if (wet_edges_size){
+    if (wet_nodes_size > 0){
       write_forces();
     }
   }
 
   timestep_limit = precicec_advance(CURRENT_TIMESTEP);
-
+  /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
+  sprintf(solve_dt, "%f", fmin(timestep_limit, CURRENT_TIMESTEP));
+  solve_dt_length = strlen(solve_dt);
   /* Read coupling state */
   ongoing = precicec_isCouplingOngoing();
-  #if !RP_NODE
-  RP_Set_Integer("udf/ongoing", ongoing);
-  #endif /* !RP_NODE */
-
+  
   if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
-    #if !RP_NODE
-    RP_Set_Integer("udf/convergence", BOOL_TRUE);
-    #endif /* !RP_NODE */
+      udf_convergence = 1;
     precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
   }
-
   if (precicec_isActionRequired(precicec_actionReadIterationCheckpoint())){
-    #if !RP_NODE
-    RP_Set_Integer("udf/convergence", BOOL_FALSE);
-    #endif /* !RP_NODE */
+      udf_convergence = 0;
     precicec_markActionFulfilled(precicec_actionReadIterationCheckpoint());
   }
+  if (! precicec_isCouplingOngoing()){
+    udf_convergence = 1;
+  }
+  printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
+  #endif /* !RP_HOST */  
+  
+  /* Pass data from compute nodes to host node */
+  node_to_host_int_3(ongoing, solve_dt_length, udf_convergence);
+  node_to_host_string(solve_dt, solve_dt_length);
 
   #if !RP_NODE
-  if (! precicec_isCouplingOngoing()){
-    RP_Set_Integer("udf/convergence", BOOL_TRUE);
-  }
+  RP_Set_String("solve/dt", solve_dt);
+  RP_Set_Integer("udf/ongoing", ongoing);
+  RP_Set_Integer("udf/convergence", udf_convergence);
   #endif /* !RP_NODE */
-
-  printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
-  #endif /* !RP_HOST */
 }
 
 /* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
@@ -201,9 +218,9 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
+  int skip_grid_motion = BOOL_TRUE;
 
   printf("\n(%d) Entering GRID_MOTION\n", myid);
-  int current_thread_size = -1;
 
   if (thread_index == dynamic_thread_size){
     printf ("Reset thread index\n");
@@ -256,12 +273,68 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #endif /* !RP_HOST  */
 }
 
-void set_mesh_positions(Domain* domain)
+int count_dynamic_threads()
 {
-  int wet_nodes_size = 0;
+  printf("(%d) Entering count_dynamic_threads()\n", myid);
+  Domain *domain = NULL;
+  Dynamic_Thread* dynamic_thread = NULL;
+  Thread* face_thread = NULL;
+  face_t face;
+  int node_index;
+  int dynamic_thread_size = 0;
+  Node* node = NULL;
+
+  printf( "  (%d) counting dynamic threads:\n", myid);
+  domain = Get_Domain(1);
+  if (domain == NULL){
+    printf("  (%d) ERROR: domain == NULL\n", myid);
+    exit(1);
+  }
+  if (domain->dynamic_threads == NULL){
+    printf("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
+    exit (1);
+  }
+  dynamic_thread = domain->dynamic_threads;
+  while (dynamic_thread != NULL){
+    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
+      face_thread  = DT_THREAD(dynamic_thread);
+      begin_f_loop (face, face_thread){ /* Thread face loop */
+        if (PRINCIPAL_FACE_P(face,face_thread)){
+          f_node_loop (face, face_thread, node_index){ /* Face node loop */
+            node = F_NODE(face, face_thread, node_index);
+            NODE_MARK(node) = 11111;
+          }
+        }
+      } end_f_loop(face, face_thread)
+      dynamic_thread_size++;
+    }
+    dynamic_thread = dynamic_thread->next;
+  }
+
+  /* Reset node marks */
+  dynamic_thread = domain->dynamic_threads;
+  while (dynamic_thread != NULL){
+    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
+      face_thread  = DT_THREAD(dynamic_thread);
+      begin_f_loop (face, face_thread){ /* Thread face loop */
+        f_node_loop (face, face_thread, node_index){ /* Face node loop */
+          node = F_NODE(face, face_thread, node_index);
+          NODE_MARK(node) = 0;
+        }
+      } end_f_loop(face, face_thread)
+    }
+    dynamic_thread = dynamic_thread->next;
+  }
+  printf("  (%d) ... %d\n", myid, dynamic_thread_size);
+  printf("(%d) Leaving count_dynamic_threads()\n", myid);
+  return dynamic_thread_size;
+}
+
+int set_mesh_positions(Domain* domain)
+{
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
-
+  double* initial_coords = NULL;
   printf("(%d) Entering set_mesh_positions()\n", myid);
   Thread* face_thread  = NULL;
   Dynamic_Thread* dynamic_thread = NULL;
@@ -329,7 +402,12 @@ void set_mesh_positions(Domain* domain)
 
   printf("(%d) Leaving set_mesh_positions()\n", myid);
 
+  return wet_nodes_size;
   #endif /* !RP_HOST  */
+  
+  #if RP_HOST
+  return -1;
+  #endif /* RP_HOST */
 }
 
 /* This functions reads the new displacements provided by the structural
@@ -388,6 +466,8 @@ void read_displacements(Dynamic_Thread* dt)
  */
 void write_forces()
 {
+  double* forces = NULL;
+  int* force_indices = NULL;
   int meshID = precicec_getMeshID("moving_base");
   int forceID = precicec_getDataID("Forces", meshID);
   int i=0, j=0;
@@ -400,31 +480,34 @@ void write_forces()
   double total_force[ND_ND];
   double max_force = 0.0;
 
+  forces = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
+  force_indices = displ_indices;
+  
   domain = Get_Domain(1);
   if (domain == NULL){
-    Message("  (%d) ERROR: domain == NULL\n", myid);
+    printf("  (%d) ERROR: domain == NULL\n", myid);
     exit(1);
   }
   if (domain->dynamic_threads == NULL){
-    Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
+    printf("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
     exit(1);
   }
 
   dynamic_thread = domain->dynamic_threads;
   thread_counter = 0;
-  Message("  (%d) Gather forces...\n", myid);
+  printf("  (%d) Gather forces...\n", myid);
   i = 0;
   while (dynamic_thread != NULL){
     if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      Message("  (%d) Thread index %d\n", myid, thread_counter);
+      printf("  (%d) Thread index %d\n", myid, thread_counter);
       Thread* face_thread  = DT_THREAD(dynamic_thread);
       if (face_thread == NULL){
-        Message("  (%d) ERROR: face_thread == NULL\n", myid);
+        printf("  (%d) ERROR: face_thread == NULL\n", myid);
         exit(1);
       }
       face_t face;
       begin_f_loop (face, face_thread){
-        if (PRINCIPAL_FACE_P(face,face_thread)){
+        if (PRINCIPAL_FACE_P(face, face_thread)){
           F_AREA(area, face, face_thread);
           NV_VS(viscous_force, =, F_STORAGE_R_N3V(face,face_thread,SV_WALL_SHEAR),*,-1.0);
           NV_VS(pressure_force, =, area, *, F_P(face,face_thread));
@@ -440,19 +523,23 @@ void write_forces()
       } end_f_loop(face, face_thread);
       thread_counter++;
     }
+    else {
+        Error("  dynamic_thread->profile_udf_name is not 'gridmotions'");
+    }
     dynamic_thread = dynamic_thread->next;
   }
-  Message("  (%d) ...done (with %d force values)\n", myid, i);
-  Message("  (%d) Writing forces...\n", myid);
-  precicec_writeBlockVectorData(forceID, wet_edges_size, force_indices, forces);
-  Message("  (%d) ...done\n", myid );
-  Message("  (%d) Max force: %f\n", max_force);
+  printf("  (%d) ...done (with %d force values)\n", myid, i);
+  printf("  (%d) Writing forces...\n", myid);
+  precicec_writeBlockVectorData(forceID, wet_nodes_size, force_indices, forces);
+  printf("  (%d) ...done\n", myid );
+  printf("  (%d) Max force: %f\n", myid, max_force);
   if (thread_counter != dynamic_thread_size){
-    Message ( "  (%d) ERROR: Number of dynamic threads has changed to %d!\n", myid, thread_counter );
+    printf ( "  (%d) ERROR: Number of dynamic threads has changed to %d!\n", myid, thread_counter );
     exit(1);
   }
 }
 
+/*
 int check_write_positions()
 {
   #if !RP_HOST
@@ -477,7 +564,7 @@ int check_write_positions()
   thread_counter = 0;
   while (dynamic_thread != NULL){
     if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
-      /*Message("\n  (%d) Thread index %d\n", myid, thread_counter);*/
+//      Message("\n  (%d) Thread index %d\n", myid, thread_counter);
       face_thread  = DT_THREAD(dynamic_thread);
       if (face_thread == NULL){
         Message("  (%d) ERROR: Thread %d: face_thread == NULL\n", myid, thread_counter);
@@ -497,10 +584,11 @@ int check_write_positions()
   if (wet_edges_check_size != wet_edges_size) {
     return wet_edges_check_size;
   }
-  #endif /* ! RP_HOST */
+  #endif // ! RP_HOST 
   return -1;
 }
-
+*/
+/*
 int check_read_positions(Dynamic_Thread* dt)
 {
   Message("  (%d) Checking read positions...\n", myid);
@@ -509,7 +597,7 @@ int check_read_positions(Dynamic_Thread* dt)
   Node* node;
   face_t face;
 
-  /* Count nodes */
+  // Count nodes 
   begin_f_loop(face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop (face, face_thread, n){
@@ -522,13 +610,13 @@ int check_read_positions(Dynamic_Thread* dt)
     }
   } end_f_loop(face, face_thread);
 
-  /* Reset node marks */
+  // Reset node marks 
   begin_f_loop(face, face_thread){
     if (PRINCIPAL_FACE_P(face,face_thread)){
       f_node_loop (face, face_thread, n){
         node = F_NODE(face, face_thread, n);
         if (NODE_MARK(node) == 12345){
-          NODE_MARK(node) = 1; /* Set node to need update*/
+          NODE_MARK(node) = 1; // Set node to need update
         }
       }
     }
@@ -541,3 +629,4 @@ int check_read_positions(Dynamic_Thread* dt)
   }
   return -1;
 }
+*/
