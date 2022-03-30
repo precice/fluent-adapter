@@ -36,7 +36,7 @@ solver_process_index = 0
 solver_process_size = 1
 
 interface = precice.Interface(participant_name, configuration_file_name, solver_process_index, solver_process_size)
-    
+
 dim = interface.get_dimensions()
 mesh_id = interface.get_mesh_id(mesh_name)
 
@@ -66,7 +66,7 @@ while interface.is_coupling_ongoing():
 
     if interface.is_action_required(precice.action_write_iteration_checkpoint()):
         print("CSMdummy: Writing iteration checkpoint")
-        interface.fulfilled_action(precice.action_write_iteration_checkpoint())
+        interface.mark_action_fulfilled(precice.action_write_iteration_checkpoint())
 
     forces = interface.read_block_vector_data(forceIDs, vertexIDs)
 
@@ -80,7 +80,7 @@ while interface.is_coupling_ongoing():
 
     if interface.is_action_required(precice.action_read_iteration_checkpoint()):
         print("CSMdummy: Reading iteration checkpoint")
-        interface.fulfilled_action(precice.action_read_iteration_checkpoint())
+        interface.mark_action_fulfilled(precice.action_read_iteration_checkpoint())
     else:
         print("CSMdummy: advancing in time")
 
