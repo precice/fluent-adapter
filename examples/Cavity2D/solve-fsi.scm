@@ -1,12 +1,12 @@
-; tell Fluent to never really update the mesh, for now
-(rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000000)
+; tell Fluent to never really update the mesh, for now -- 1000000 is the max update interval allowed
+(rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000)
 
 (do () ((= (%rpgetvar 'udf/ongoing) 0))
    ; preCICE was initilized, which could have modified the time step, so we
    ; reset the time step here
    (ti-menu-load-string (string-append "solve/set/time-step " (%rpgetvar 'solve/dt)))
    ; advance the solver to the next time step
-   (ti-menu-load-string (string-append "solve/update-physical-time"))
+   (ti-menu-load-string "solve/dual-time-iterate 1 0")
    (if (= (%rpgetvar 'udf/iterate) 0)
    ; if we're not solving a time step that ends in preCICE coupling
    ; (sub-cycling), then just run the fluid solver a certain number of
@@ -28,7 +28,7 @@
          ( begin 
             (rpsetvar 'dynamesh/update-in-timestep/update-interval 1)
             (ti-menu-load-string "solve/iterate 1")
-            (rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000000)
+            (rpsetvar 'dynamesh/update-in-timestep/update-interval 1000000)
          ))
       )
    ))
