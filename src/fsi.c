@@ -22,25 +22,13 @@
 /* GLOBAL VARIABLES */
 int wet_nodes_size = 0;
 int* displ_indices = NULL;
-/* END GLOBAL VARIABLES */
-
 int thread_index = 0;
 int dynamic_thread_size = 0;
-int wet_edges_size = 0;
-int boundary_nodes_size = 0;
-int deformable_nodes_size = 0;
-int moved_nodes_counter = 0;
-double* boundary_coords = NULL; /* MESH MOVEMENT */
-double* displacements = NULL;
 int* dynamic_thread_node_size = NULL;
-double* c_matrix = NULL;
-double* x_coeff_vector = NULL;
-double* y_coeff_vector = NULL;
-double* b_vector = NULL;
-int* pivots_vector = NULL;
-int require_create_checkpoint = BOOL_FALSE;
-int* precice_force_ids; /* Gathered in host node (or serial node) */
-int* precice_displ_ids;
+  int skip_grid_motion = BOOL_TRUE;
+/* END GLOBAL VARIABLES */
+
+//int wet_edges_size = 0;
 
 #if ND_ND == 2
 #define norm(a, b) sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]))
@@ -62,15 +50,17 @@ int set_mesh_positions(Domain* domain);
  * */
 void fsi_init(Domain* domain)
 {
-  printf("\nEntering fsi_init\n");
 
   int solve_dt_length = 0;
-  char solve_dt[16];
+  char *solve_dt = NULL;
   int udf_convergence = 1;
   int udf_iterate = 0;
 
+  solve_dt = (char*) malloc(1 * sizeof(char));
+  
   /* Only Rank 0 Process handles the coupling interface */
   #if !RP_HOST
+  printf("\n(%d) Entering fsi_init\n", myid);
   int solver_process_id = -1;
   int solver_process_size = 0;
   double timestep_limit = 0.0;
@@ -110,7 +100,7 @@ void fsi_init(Domain* domain)
   timestep_limit = precicec_initialize();
   /* Set the solver time step to be the minimum of the precice time step an the
    * current time step */
-  sprintf(solve_dt, "%f", fmin(timestep_limit, CURRENT_TIMESTEP));
+  sprintf(solve_dt, "%.18f", fmin(timestep_limit, CURRENT_TIMESTEP));
   solve_dt_length = strlen(solve_dt);
   printf("  (%d) Initialization done\n", myid);
   #endif /* !RP_HOST */
@@ -160,11 +150,12 @@ void fsi_write_and_advance()
   int ongoing = 1;
   int udf_convergence = 0;
   int solve_dt_length = 0;
-  char solve_dt[16];
+  char *solve_dt = NULL;
+  solve_dt = (char *) malloc(1 * sizeof(char));
 
   /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
   #if !RP_HOST
-  printf("  (%d) Entering ON_DEMAND(write_and_advance)\n", myid);
+  printf("\n(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
   int subcycling = !precicec_isWriteDataRequired(CURRENT_TIMESTEP);
   double timestep_limit = 0.0;
 
@@ -179,7 +170,7 @@ void fsi_write_and_advance()
 
   timestep_limit = precicec_advance(CURRENT_TIMESTEP);
   /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
-  sprintf(solve_dt, "%f", fmin(timestep_limit, CURRENT_TIMESTEP));
+  sprintf(solve_dt, "%.18f", fmin(timestep_limit, CURRENT_TIMESTEP));
   solve_dt_length = strlen(solve_dt);
   /* Read coupling state */
   ongoing = precicec_isCouplingOngoing();
@@ -216,19 +207,22 @@ void fsi_write_and_advance()
  * */
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
+  int udf_convergence = 0;
+  
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
-  int skip_grid_motion = BOOL_TRUE;
-
   printf("\n(%d) Entering GRID_MOTION\n", myid);
-
+  /* Restart the thread index so we can provide motion for more than one
+   * boundary */
   if (thread_index == dynamic_thread_size){
-    printf ("Reset thread index\n");
+    printf ("  (%d) Reset thread index\n", myid);
     thread_index = 0;
   }
   printf("  (%d) Thread index = %d\n", myid, thread_index);
+  /* Create the Thread pointer */
   Thread* face_thread  = DT_THREAD(dt);
 
+  /* Ways we can error out */
   if (strncmp("gridmotions", dt->profile_udf_name, 11) != 0){
     printf("  (%d) ERROR: called gridmotions for invalid dynamic thread: %s\n",
             myid, dt->profile_udf_name);
@@ -238,7 +232,8 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     printf("  (%d) ERROR: face_thread == NULL\n", myid);
     exit(1);
   }
-
+  /* If we skip the grid motion on the first round just return, but also
+   * increase the thread index and change skip_grid_motion to FALSE */
   if (skip_grid_motion){
     if (thread_index >= dynamic_thread_size-1){
       skip_grid_motion = BOOL_FALSE;
@@ -247,30 +242,30 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     printf("  (%d) Skipping first round grid motion\n", myid);
     return;
   }
-
+  /* Read in displacements and move grid */
   SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
-
   read_displacements(dt);
   thread_index++;
-
-  #if !RP_NODE
-
-  Message("  (%d) convergence=%d, iterate=%d, couplingOngoing=%d\n",
+  /* print status of the relevant flags */
+  printf("  (%d) convergence=%ld, iterate=%ld, couplingOngoing=%d\n",
           myid, RP_Get_Integer("udf/convergence"), RP_Get_Integer("udf/iterate"),
           precicec_isCouplingOngoing());
   if (RP_Get_Integer("udf/convergence") && RP_Get_Integer("udf/iterate") && precicec_isCouplingOngoing()){
-    RP_Set_Integer("udf/convergence", BOOL_FALSE);
+      udf_convergence = 0;
   }
-
-  #endif /* !RP_NODE */
-
+  /* if precice is done, finalize */
   if (! precicec_isCouplingOngoing()){
     precicec_finalize();
   }
-
   printf("(%d) Leaving GRID_MOTION\n", myid);
-
   #endif /* !RP_HOST  */
+  
+  /* Send udf_convergence to RP_HOST so it can be changed in the TUI */
+  node_to_host_int_1(udf_convergence);
+  
+  #if !RP_NODE
+  RP_Set_Integer("udf/convergence", udf_convergence);
+  #endif
 }
 
 int count_dynamic_threads()
@@ -372,7 +367,6 @@ int set_mesh_positions(Domain* domain)
 
   /* Providing mesh information to preCICE */
   initial_coords = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
-  displacements = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
   displ_indices = (int*) malloc(wet_nodes_size * sizeof(int));
   array_index = wet_nodes_size - dynamic_thread_node_size[thread_index];
 
@@ -416,6 +410,7 @@ int set_mesh_positions(Domain* domain)
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
+  double* displacements = NULL;
   int meshID = precicec_getMeshID("moving_base");
   int displID = precicec_getDataID("Displacements", meshID);
   int offset = 0;
@@ -425,6 +420,8 @@ void read_displacements(Dynamic_Thread* dt)
   face_t face;
   real max_displ_delta = 0.0;
 
+  displacements = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
+  
   if (dynamic_thread_node_size[thread_index] > 0){
     Message("  (%d) Reading displacements...\n", myid);
     offset = 0;
