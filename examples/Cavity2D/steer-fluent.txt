@@ -7,3 +7,4 @@ file/read-journal init-fsi.scm
 file/read-journal solve-fsi.scm
 
 exit
+yes
