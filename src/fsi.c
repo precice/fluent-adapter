@@ -50,14 +50,10 @@ int set_mesh_positions(Domain* domain);
  * */
 void fsi_init(Domain* domain)
 {
-
-  int solve_dt_length = 0;
-  char *solve_dt = NULL;
+  double solve_dt = 0;
   int udf_convergence = 1;
   int udf_iterate = 0;
 
-  solve_dt = (char*) malloc(1 * sizeof(char));
-  
   /* Only Rank 0 Process handles the coupling interface */
   #if !RP_HOST
   printf("\n(%d) Entering fsi_init\n", myid);
@@ -85,9 +81,10 @@ void fsi_init(Domain* domain)
   }
   printf("  (%d) Solver interface created\n", myid);
 
+  /* Count the number of dynamic threads */
   dynamic_thread_size = count_dynamic_threads();
 
-  /* count the dynamic thread node size after calling count_dynamic_threads */
+  /* initialize array of nodes on each dynamic thread with 0s */
   dynamic_thread_node_size = (int*) malloc(dynamic_thread_size * sizeof(int));
   for (int i=0;  i < dynamic_thread_size; i++){
     dynamic_thread_node_size[i] = 0;
@@ -100,17 +97,15 @@ void fsi_init(Domain* domain)
   timestep_limit = precicec_initialize();
   /* Set the solver time step to be the minimum of the precice time step an the
    * current time step */
-  sprintf(solve_dt, "%.18f", fmin(timestep_limit, CURRENT_TIMESTEP));
-  solve_dt_length = strlen(solve_dt);
+  solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
   printf("  (%d) Initialization done\n", myid);
   #endif /* !RP_HOST */
 
   /* Communicate values from node(s) to host */
-  node_to_host_int_1(solve_dt_length);
-  node_to_host_string(solve_dt,solve_dt_length);
+  node_to_host_double_1(solve_dt);
   #if !RP_NODE
   if (RP_Variable_Exists_P("solve/dt")){
-    RP_Set_String("solve/dt", solve_dt);
+    RP_Set_Real("solve/dt", solve_dt);
   }
   else {
     Error("Error reading 'solve/dt' Scheme variable");
@@ -149,9 +144,7 @@ void fsi_write_and_advance()
 {
   int ongoing = 1;
   int udf_convergence = 0;
-  int solve_dt_length = 0;
-  char *solve_dt = NULL;
-  solve_dt = (char *) malloc(1 * sizeof(char));
+  double solve_dt = 0;
 
   /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
   #if !RP_HOST
@@ -170,8 +163,7 @@ void fsi_write_and_advance()
 
   timestep_limit = precicec_advance(CURRENT_TIMESTEP);
   /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
-  sprintf(solve_dt, "%.18f", fmin(timestep_limit, CURRENT_TIMESTEP));
-  solve_dt_length = strlen(solve_dt);
+  solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
   /* Read coupling state */
   ongoing = precicec_isCouplingOngoing();
   
@@ -190,13 +182,16 @@ void fsi_write_and_advance()
   #endif /* !RP_HOST */  
   
   /* Pass data from compute nodes to host node */
-  node_to_host_int_3(ongoing, solve_dt_length, udf_convergence);
-  node_to_host_string(solve_dt, solve_dt_length);
+  node_to_host_int_2(ongoing, udf_convergence);
+  node_to_host_double_1(solve_dt);
 
   #if !RP_NODE
-  RP_Set_String("solve/dt", solve_dt);
+  RP_Set_Real("solve/dt", solve_dt);
   RP_Set_Integer("udf/ongoing", ongoing);
   RP_Set_Integer("udf/convergence", udf_convergence);
+  Message("(%d) Setting solve/dt: %.6e, udf/ongoing: %ld, udf/convergence: %ld\n",
+          myid, RP_Get_Real("solve/dt"), RP_Get_Integer("udf/ongoing"),
+          RP_Get_Integer("udf/convergence"));
   #endif /* !RP_NODE */
 }
 
@@ -207,7 +202,7 @@ void fsi_write_and_advance()
  * */
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
-  int udf_convergence = 0;
+  int ongoing = 1;
   
   /* Only the host process (Rank 0) handles grid motion and displacement calculations */
   #if !RP_HOST
@@ -240,19 +235,15 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
     }
     thread_index++;
     printf("  (%d) Skipping first round grid motion\n", myid);
-    return;
   }
-  /* Read in displacements and move grid */
-  SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
-  read_displacements(dt);
-  thread_index++;
-  /* print status of the relevant flags */
-  printf("  (%d) convergence=%ld, iterate=%ld, couplingOngoing=%d\n",
-          myid, RP_Get_Integer("udf/convergence"), RP_Get_Integer("udf/iterate"),
-          precicec_isCouplingOngoing());
-  if (RP_Get_Integer("udf/convergence") && RP_Get_Integer("udf/iterate") && precicec_isCouplingOngoing()){
-      udf_convergence = 0;
+  else {
+    /* Read in displacements and move grid */
+    SET_DEFORMING_THREAD_FLAG(THREAD_T0(face_thread));
+    read_displacements(dt);
+    thread_index++;
   }
+  /* update the ongoing flag */
+  ongoing = precicec_isCouplingOngoing();
   /* if precice is done, finalize */
   if (! precicec_isCouplingOngoing()){
     precicec_finalize();
@@ -261,10 +252,24 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   #endif /* !RP_HOST  */
   
   /* Send udf_convergence to RP_HOST so it can be changed in the TUI */
-  node_to_host_int_1(udf_convergence);
+  node_to_host_int_1(ongoing);
   
   #if !RP_NODE
-  RP_Set_Integer("udf/convergence", udf_convergence);
+  /* update the ongoing flag */
+  RP_Set_Integer("udf/ongoing", ongoing);
+  /* print status of the relevant flags */
+  Message("(%d) convergence=%ld, iterate=%ld, couplingOngoing=%ld\n",
+          myid, RP_Get_Integer("udf/convergence"), RP_Get_Integer("udf/iterate"),
+          RP_Get_Integer("udf/ongoing"));
+  /* if ongoing, iterate, and convergence flags are all on turn the convergence
+   * flag off */
+  if (RP_Get_Integer("udf/convergence") &&
+          RP_Get_Integer("udf/iterate") &&
+          RP_Get_Integer("udf/ongoing")){
+      RP_Set_Integer("udf/convergence", 0);
+      Message("(%d) Setting udf/convergence: %ld\n",
+              myid, RP_Get_Integer("udf/convergence"));
+  }
   #endif
 }
 

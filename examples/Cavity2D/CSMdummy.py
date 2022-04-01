@@ -85,4 +85,3 @@ while interface.is_coupling_ongoing():
         print("CSMdummy: advancing in time")
 
 interface.finalize()
-

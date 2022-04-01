@@ -42,7 +42,8 @@
 
     <coupling-scheme:serial-implicit> 
       <participants first="Fluent" second="CSMdummy"/> 
-      <time-window-size value="0.001"/>
+      <time-window-size value="0.002"/>
+      <max-time value="1"/>
       <max-iterations value="100"/>
       <exchange data="Forces" mesh="beam" from="Fluent" to="CSMdummy"/>
       <exchange data="Displacements" mesh="beam" from="CSMdummy" to="Fluent" initialize="0"/>
