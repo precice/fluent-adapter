@@ -244,6 +244,7 @@ void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
   }
   /* update the ongoing flag */
   ongoing = precicec_isCouplingOngoing();
+  PRF_GSYNC();
   /* if precice is done, finalize */
   if (! precicec_isCouplingOngoing()){
     precicec_finalize();
@@ -476,10 +477,12 @@ void write_forces()
   Domain* domain = NULL;
   Dynamic_Thread* dynamic_thread = NULL;
   int thread_counter = 0;
+  int face_counter = 0;
   real area[ND_ND];
   real pressure_force[ND_ND];
   real viscous_force[ND_ND];
   double total_force[ND_ND];
+  double sum_total_force[ND_ND];
   double max_force = 0.0;
 
   forces = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
@@ -504,16 +507,27 @@ void write_forces()
       printf("  (%d) Thread index %d\n", myid, thread_counter);
       Thread* face_thread  = DT_THREAD(dynamic_thread);
       if (face_thread == NULL){
-        printf("  (%d) ERROR: face_thread == NULL\n", myid);
-        exit(1);
+        Error("  (%d) face_thread == NULL\n", myid);
       }
+      if (!BOUNDARY_FACE_THREAD_P(face_thread)){
+          Error("  (%d) face_thread is not a boundary face\n", myid);
+      }
+      face_counter = 0;
+      sum_total_force[0] = 0;
+      sum_total_force[1] = 0;
       face_t face;
       begin_f_loop (face, face_thread){
         if (PRINCIPAL_FACE_P(face, face_thread)){
           F_AREA(area, face, face_thread);
+          printf("area: %f %f\n", area[0], area[1]);
           NV_VS(viscous_force, =, F_STORAGE_R_N3V(face,face_thread,SV_WALL_SHEAR),*,-1.0);
+          printf("viscous_force: %f %f\n", viscous_force[0], viscous_force[1]);
+          /* F_P is NOT available in the density-based solver in Fluent; MUST
+           * use the pressure-based solver */
           NV_VS(pressure_force, =, area, *, F_P(face,face_thread));
+          printf("pressure_force: %f %f\n", pressure_force[0], pressure_force[1]);
           NV_VV(total_force, =, viscous_force, +, pressure_force);
+          printf("total_force: %f %f\n", total_force[0], total_force[1]);
           for (j=0; j < ND_ND; j++){
             forces[i + j] = total_force[j];
             if (fabs(total_force[j]) > fabs(max_force)){
@@ -522,7 +536,13 @@ void write_forces()
           }
           i += ND_ND;
         }
+        face_counter++;
+        sum_total_force[0] += total_force[0];
+        sum_total_force[1] += total_force[1];
       } end_f_loop(face, face_thread);
+      printf("  (%d) thread: %d had %d faces\n", myid, thread_counter, face_counter);
+      printf("  (%d) thread: %d had sum_total_force: %f %f\n",
+              myid, thread_counter, sum_total_force[0], sum_total_force[1]);
       thread_counter++;
     }
     else {
