@@ -27,9 +27,13 @@ def computeDisplacements(force_vals, displ_vals):
     # Length of beam = 1 m as stated in FLUENT
     ll = 1
 
-    for vertex in range(0, vertexSize*dim, 2):
-        displ_vals[vertex] = force_vals[vertex]*vertex*(ll-vertex)*(ll*ll + vertex*(ll-x))/(24*ME*MI*ll)
+    for vertex in range(vertexSize):
+        displ_vals[vertex, 0] = force_vals[vertex, 0] * vertex * (ll-vertex) * \
+            (ll * ll + vertex * (ll - vertex)) / (24 * ME * MI * ll)
+
     print("Updating displacement variable")
+
+    return displ_vals
 
 
 solver_process_index = 0
@@ -44,7 +48,7 @@ vertexSize = 100
 coords_x = []
 coords_y = []
 for i in range(vertexSize):
-    coords_x.append(i)
+    coords_x.append(i/100)
     coords_y.append(0.0)
 
 coords = np.stack([coords_x, coords_y], axis=1)
@@ -69,8 +73,10 @@ while interface.is_coupling_ongoing():
         interface.mark_action_fulfilled(precice.action_write_iteration_checkpoint())
 
     forces = interface.read_block_vector_data(forceIDs, vertexIDs)
+    print("Forces read in:\n{}".format(forces))
 
-#    computeDisplacements(forces,displacements)
+    displacements = computeDisplacements(forces, displacements)
+    print("Computed Displacements:\n{}".format(displacements))
 
     dt = min(precice_dt, dt)
 
