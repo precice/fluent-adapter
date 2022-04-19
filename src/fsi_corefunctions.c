@@ -445,3 +445,92 @@ void fsi_plot_coords()
 //  Message("  (%d) ...done regathering write positions\n", myid);
 //  #endif /* ! RP_HOST */
 //}
+
+int check_write_positions()
+{
+  #if !RP_HOST
+  Domain* domain = NULL;
+  Dynamic_Thread* dynamic_thread = NULL;
+  Thread* face_thread = NULL;
+  int thread_counter = 0;
+  face_t face;
+  int wet_edges_check_size = 0;
+
+  Message("  (%d) Checking write positions...\n", myid);
+  domain = Get_Domain(1);
+  if (domain == NULL){
+    Message("  (%d) ERROR: domain == NULL\n", myid);
+    exit(1);
+  }
+  if (domain->dynamic_threads == NULL){
+    Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
+    exit(1);
+  }
+  dynamic_thread = domain->dynamic_threads;
+  thread_counter = 0;
+  while (dynamic_thread != NULL){
+    if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
+      Message("\n  (%d) Thread index %d\n", myid, thread_counter);
+      face_thread  = DT_THREAD(dynamic_thread);
+      if (face_thread == NULL){
+        Message("  (%d) ERROR: Thread %d: face_thread == NULL\n", myid, thread_counter);
+        exit(1);
+      }
+      begin_f_loop (face, face_thread){
+        if (PRINCIPAL_FACE_P(face,face_thread)){
+          wet_edges_check_size++;
+        }
+      } end_f_loop(face, face_thread);
+      thread_counter++;
+    }
+    dynamic_thread = dynamic_thread->next;
+  }
+  Message("  (%d) ...done (currently %d wet edges, old is %d)", myid,
+          wet_edges_check_size, wet_edges_size);
+  if (wet_edges_check_size != wet_edges_size) {
+    return wet_edges_check_size;
+  }
+  #endif // ! RP_HOST 
+  return -1;
+}
+
+int check_read_positions(Dynamic_Thread* dt)
+{
+  Message("  (%d) Checking read positions...\n", myid);
+  int i = 0, n = 0;
+  Thread* face_thread = DT_THREAD(dt);
+  Node* node;
+  face_t face;
+
+  // Count nodes 
+  begin_f_loop(face, face_thread){
+    if (PRINCIPAL_FACE_P(face,face_thread)){
+      f_node_loop (face, face_thread, n){
+        node = F_NODE(face, face_thread, n);
+        if (NODE_POS_NEED_UPDATE(node)){
+          NODE_MARK(node) = 12345;
+          i++;
+        }
+      }
+    }
+  } end_f_loop(face, face_thread);
+
+  // Reset node marks 
+  begin_f_loop(face, face_thread){
+    if (PRINCIPAL_FACE_P(face,face_thread)){
+      f_node_loop (face, face_thread, n){
+        node = F_NODE(face, face_thread, n);
+        if (NODE_MARK(node) == 12345){
+          NODE_MARK(node) = 1; // Set node to need update
+        }
+      }
+    }
+  } end_f_loop(face, face_thread);
+
+  if (i != dynamic_thread_node_size[thread_index]){
+    Message("  (%d) Wet node count has changed for dynamic thread %d!\n",
+            myid, thread_index);
+    return i;
+  }
+  return -1;
+}
