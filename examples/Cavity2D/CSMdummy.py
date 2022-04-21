@@ -15,7 +15,7 @@ participant_name = "CSMdummy"
 mesh_name = "beam"
 
 
-def computeDisplacements(force_vals, displ_vals):
+def computeDisplacements(force_vals, displ_vals, coords_x):
     print("Entering computeDisplacements")
 
     # Considering beam of square cross-section with thickness of 0.01 m
@@ -27,9 +27,17 @@ def computeDisplacements(force_vals, displ_vals):
     # Length of beam = 1 m as stated in FLUENT
     ll = 1
 
-    for vertex in range(vertexSize):
-        displ_vals[vertex, 0] = force_vals[vertex, 0] * vertex * (ll-vertex) * \
-            (ll * ll + vertex * (ll - vertex)) / (24 * ME * MI * ll)
+    displ_vals[:, 1] = (1 / (24 * ME * MI * ll)) * \
+        np.multiply(np.multiply(np.multiply(force_vals[:, 1],
+                                            coords_x),
+                                (ll - coords_x)),
+                    (ll * ll + coords_x * (ll - coords_x)))
+
+    # cap the displacement at 0.002
+    displ_vals = np.array([np.array([val[0], -0.002]) if val[1] < -0.002
+                           else np.array([val[0], 0.002]) if val[1] > 0.002
+                           else np.array([val[0], val[1]])
+                           for val in displ_vals])
 
     print("Updating displacement variable")
 
@@ -45,11 +53,8 @@ dim = interface.get_dimensions()
 mesh_id = interface.get_mesh_id(mesh_name)
 
 vertexSize = 100
-coords_x = []
-coords_y = []
-for i in range(vertexSize):
-    coords_x.append(i/100)
-    coords_y.append(0.0)
+coords_x = np.linspace(0, 1, num=vertexSize)
+coords_y = np.linspace(0, 0, num=vertexSize)
 
 coords = np.stack([coords_x, coords_y], axis=1)
 
@@ -75,7 +80,7 @@ while interface.is_coupling_ongoing():
     forces = interface.read_block_vector_data(forceIDs, vertexIDs)
     print("Forces read in:\n{}".format(forces))
 
-    displacements = computeDisplacements(forces, displacements)
+    displacements = computeDisplacements(forces, displacements, coords_x)
     print("Computed Displacements:\n{}".format(displacements))
 
     dt = min(precice_dt, dt)

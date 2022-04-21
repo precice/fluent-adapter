@@ -12,30 +12,42 @@
     <data:vector name="Forces"/>
     <data:vector name="Displacements"/>
 
-    <mesh name="moving_base">
-      <use-data name="Forces"/>
+    <mesh name="moving_base_nodes">
       <use-data name="Displacements"/>
     </mesh>
 
+    <mesh name="moving_base_faces">
+      <use-data name="Forces"/>
+    </mesh>
+    
     <mesh name="beam">
       <use-data name="Forces"/>
       <use-data name="Displacements"/>
     </mesh>
 
     <participant name="Fluent">
-      <use-mesh name="moving_base" provide="yes"/>
+      <use-mesh name="moving_base_nodes" provide="yes"/>
+      <use-mesh name="moving_base_faces" provide="yes"/>
       <use-mesh name="beam" from="CSMdummy"/>
-      <write-data name="Forces"     mesh="moving_base"/>
-      <read-data  name="Displacements" mesh="moving_base"/>
-      <mapping:nearest-projection   direction="write" from="moving_base" to="beam" constraint="conservative"/>
+      <write-data name="Forces" mesh="moving_base_faces"/>
+      <read-data  name="Displacements" mesh="moving_base_nodes"/>
+      <mapping:nearest-projection
+	      direction="write"
+	      from="moving_base_faces"
+	      to="beam"
+	      constraint="conservative"/>
+      <mapping:nearest-projection
+	      direction="read"
+	      from="beam"
+	      to="moving_base_nodes"
+	      constraint="conservative"/>
     </participant>
 
     <participant name="CSMdummy">
       <use-mesh name="beam" provide="yes"/>
-      <use-mesh name="moving_base" from="Fluent"/>
+      <use-mesh name="moving_base_faces" from="Fluent"/>
       <write-data name="Displacements" mesh="beam"/>
       <read-data  name="Forces"     mesh="beam"/>
-      <mapping:nearest-projection   direction="write" from="beam" to="moving_base" constraint="conservative"/>
     </participant>
 
     <m2n:sockets from="Fluent" to="CSMdummy"/>
@@ -43,7 +55,7 @@
     <coupling-scheme:serial-implicit> 
       <participants first="Fluent" second="CSMdummy"/> 
       <time-window-size value="1.0"/>
-      <max-time value="100"/>
+      <max-time value="500"/>
       <max-iterations value="100"/>
       <exchange data="Forces" mesh="beam" from="Fluent" to="CSMdummy"/>
       <exchange data="Displacements" mesh="beam" from="CSMdummy" to="Fluent" initialize="0"/>
