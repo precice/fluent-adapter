@@ -18,13 +18,16 @@
 
 /* GLOBAL VARIABLES */
 int wet_nodes_size = 0;
+int wet_face_size = 0;
 int* displ_indices = NULL;
+int* face_indices = NULL;
+double* initial_coords = NULL;
+double* face_coords = NULL;
 int thread_index = 0;
 int dynamic_thread_size = 0;
 int* dynamic_thread_node_size = NULL;
-int** is_duplicate = NULL;
+int* dynamic_thread_face_size = NULL;
 int skip_grid_motion = BOOL_TRUE;
-double* initial_coords = NULL;
 /* END GLOBAL VARIABLES */
 
 #if ND_ND == 2
@@ -37,7 +40,7 @@ double* initial_coords = NULL;
 int count_dynamic_threads();
 void write_forces();
 void read_displacements(Dynamic_Thread* dt);
-int set_mesh_positions(Domain* domain);
+void set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
@@ -81,12 +84,14 @@ void fsi_init(Domain* domain)
 
     /* initialize array of nodes on each dynamic thread with 0s */
     dynamic_thread_node_size = (int*) malloc(dynamic_thread_size * sizeof(int));
+    dynamic_thread_face_size = (int*) malloc(dynamic_thread_size * sizeof(int));
     for (int i=0;  i < dynamic_thread_size; i++){
         dynamic_thread_node_size[i] = 0;
+        dynamic_thread_face_size[i] = 0;
     }
     
-    /* Set coupling mesh */
-    wet_nodes_size = set_mesh_positions(domain);
+    /* Set coupling mesh positions (faces and nodes)*/
+    set_mesh_positions(domain);
 
     printf("  (%d) Initializing coupled simulation\n", myid);
     timestep_limit = precicec_initialize();
@@ -151,7 +156,7 @@ void fsi_write_and_advance()
         Message("  (%d) In subcycle, skip writing\n", myid);
     }
     else {
-        if (wet_nodes_size > 0){
+        if (wet_face_size > 0){
           write_forces();
       }
     }
@@ -326,7 +331,7 @@ int count_dynamic_threads()
    return dynamic_thread_size;
 }
 
-int set_mesh_positions(Domain* domain)
+void set_mesh_positions(Domain* domain)
 {
     /* Only the host process (Rank 0) handles grid motion and displacement calculations */
     #if !RP_HOST
@@ -335,8 +340,10 @@ int set_mesh_positions(Domain* domain)
     Dynamic_Thread* dynamic_thread = NULL;
     Node* node;
     face_t face;
-    int n = 0, dim = 0, array_index = 0;
-    int meshID = precicec_getMeshID("moving_base");
+    double pos[ND_ND];
+    int n = 0, dim = 0, array_index = 0, face_index = 0;
+    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
+    int faceMeshID = precicec_getMeshID("moving_base_faces");
 
     if (domain->dynamic_threads == NULL){
         Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
@@ -354,6 +361,8 @@ int set_mesh_positions(Domain* domain)
      * marked in count_dynamic_threads() */
     begin_f_loop(face, face_thread){
         if (PRINCIPAL_FACE_P(face, face_thread)) {
+            wet_face_size++;
+            dynamic_thread_face_size[thread_index]++;
             f_node_loop(face, face_thread, n){
                 node = F_NODE(face, face_thread, n);
                 if (NODE_MARK(node) == 0) {
@@ -367,11 +376,16 @@ int set_mesh_positions(Domain* domain)
 
     /* allocate the coordinates arrays */
     initial_coords = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
+    face_coords = (double*) malloc(wet_face_size * ND_ND * sizeof(double));
 
     /* Cycle through all of the unique nodes and save their initial coordinate;
      * nodes were marked with 1 in previous loop */
     begin_f_loop(face, face_thread){
         if (PRINCIPAL_FACE_P(face,face_thread)){
+            F_CENTROID(pos, face, face_thread);
+            for (dim = 0; dim < ND_ND; dim++) {
+                face_coords[face_index * ND_ND + dim] = pos[dim];
+            }
             f_node_loop(face, face_thread, n){
                 node = F_NODE(face, face_thread, n);
                 if (NODE_MARK(node) == 1) {
@@ -382,29 +396,27 @@ int set_mesh_positions(Domain* domain)
                     array_index++;
                 }
             }
+            face_index++;
         }
     } end_f_loop(face, face_thread);
 
-    printf("  (%d) Setting %d initial positions ...\n", myid, wet_nodes_size);
+    printf("  (%d) Setting %d initial node positions ...\n", myid, wet_nodes_size);
+    printf("  (%d) Setting %d initial face positions ...\n", myid, wet_face_size);
 
     /* Providing mesh information to preCICE */
     displ_indices = (int*) malloc(wet_nodes_size * sizeof(int));
+    face_indices = (int*) malloc(wet_face_size * sizeof(int));
     array_index = wet_nodes_size - dynamic_thread_node_size[thread_index];
 
-    precicec_setMeshVertices(meshID, wet_nodes_size, initial_coords, displ_indices);
+    precicec_setMeshVertices(nodeMeshID, wet_nodes_size, initial_coords, displ_indices);
+    precicec_setMeshVertices(faceMeshID, wet_face_size, face_coords, face_indices);
 
     printf("  (%d) Set %d (of %d) mesh positions ...\n", myid,
             array_index - wet_nodes_size + dynamic_thread_node_size[thread_index],
             dynamic_thread_node_size[thread_index]);
 
     printf("(%d) Leaving set_mesh_positions()\n", myid);
-
-    return wet_nodes_size;
     #endif /* !RP_HOST  */
-    
-    #if RP_HOST
-    return -1;
-    #endif /* RP_HOST */
 }
 
 /* This functions reads the new displacements provided by the structural
@@ -414,8 +426,8 @@ int set_mesh_positions(Domain* domain)
 void read_displacements(Dynamic_Thread* dt)
 {
     double* displacements = NULL;
-    int meshID = precicec_getMeshID("moving_base");
-    int displID = precicec_getDataID("Displacements", meshID);
+    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
+    int displID = precicec_getDataID("Displacements", nodeMeshID);
     int offset = 0;
     int i = 0, n = 0, dim = 0;
     Thread* face_thread  = DT_THREAD(dt);
@@ -434,6 +446,7 @@ void read_displacements(Dynamic_Thread* dt)
         //precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         //        displ_indices + offset, displacements + ND_ND * offset);
         precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index], displ_indices, displacements);
+        
         printf("After readBlockVectorData\n");
         Message("  (%d) Setting displacements...\n", myid);
         i = offset * ND_ND;
@@ -466,9 +479,8 @@ void read_displacements(Dynamic_Thread* dt)
 void write_forces()
 {
     double* forces = NULL;
-    int* force_indices = NULL;
-    int meshID = precicec_getMeshID("moving_base");
-    int forceID = precicec_getDataID("Forces", meshID);
+    int faceMeshID = precicec_getMeshID("moving_base_faces");
+    int forceID = precicec_getDataID("Forces", faceMeshID);
     int i=0, j=0;
     Domain* domain = NULL;
     Dynamic_Thread* dynamic_thread = NULL;
@@ -481,8 +493,7 @@ void write_forces()
     double sum_total_force[ND_ND];
     double max_force = 0.0;
 
-    forces = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
-    force_indices = displ_indices;
+    forces = (double*) malloc(wet_face_size * ND_ND * sizeof(double));
     
     domain = Get_Domain(1);
     if (domain == NULL){
@@ -495,9 +506,7 @@ void write_forces()
     }
 
     dynamic_thread = domain->dynamic_threads;
-    thread_counter = 0;
     printf("  (%d) Gather forces...\n", myid);
-    i = 0;
     while (dynamic_thread != NULL){
        if (strncmp("gridmotions", dynamic_thread->profile_udf_name, 11) == 0){
            printf("  (%d) Thread index %d\n", myid, thread_counter);
@@ -544,7 +553,7 @@ void write_forces()
     }
     printf("  (%d) ...done (with %d force values)\n", myid, i);
     printf("  (%d) Writing forces...\n", myid);
-    precicec_writeBlockVectorData(forceID, wet_nodes_size, force_indices, forces);
+    precicec_writeBlockVectorData(forceID, wet_face_size, face_indices, forces);
     printf("  (%d) ...done\n", myid );
     printf("  (%d) Max force: %f\n", myid, max_force);
     if (thread_counter != dynamic_thread_size){
