@@ -40,7 +40,7 @@
 	      direction="read"
 	      from="beam"
 	      to="moving_base_nodes"
-	      constraint="conservative"/>
+	      constraint="consistent"/>
     </participant>
 
     <participant name="CSMdummy">
