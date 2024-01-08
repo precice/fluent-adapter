@@ -1,15 +1,190 @@
-**WARNING:** Currently this adapter is under construction. This means that it does not work with recent preCICE versions and we do not recommend using this adapter. If you want to contribute, our issue [Update fluent adapter for compatibility with recent preCICE versions #1](https://github.com/precice/fluent-adapter/issues/1) is a good starting point.
+# preCICE-adapter for the CFD code ANSYS Fluent
 
-This adapter was originally developed by Bernhard Gatzhammer as a part of his thesis [1]. Richard Hertrich carried out a status update for the adapter in [2].
+**This adapter is valid for FLUENT 19.5 and preCICE v2.2 on Ubuntu 20.04**
 
-## Start here
+The Fluent preCICE adapter operates using Fluent's User-Defined Function (UDF) feature. UDFs are functions written in the C programming language that are dynamically loaded with the Fluent
+solver and can be used to enhance and generalize its standard features. For example, UDFs can be used to:
 
-Our [wiki](https://github.com/precice/fluent-adapter/wiki) will help you start.
+- Customize boundary conditions, material property definitions, or source functions.
+- Customize different numerical/physics models being employed: multiphase mixture models, discrete phase models, radiation models, chemical reaction models, diffusivity models, etc.
+- Execute code at different stages of a solution: at solution initialization, at every iteration, upon reaching convergence, etc.
+- Many other things, as long as one can code it in C.
+
+## Fluent UDF Requirements
+
+Details about UDFs can be found in the UDF Manual provided by ANSYS Fluent. A summary of the major requirements follows.
+
+### File requirements
+
+UDFs are identified by a .c file extension (for example fsi_udf.c). UDFs must be defined using DEFINE macros supplied by Fluent. These macros are pre-defined functions that access the Fluent
+solver and perform other tasks. The .c file containing the UDFs (fsi_udf.c) must contain an include statement for a udf header file (#include "udf.h"). The udf header file is provided with the Fluent application and will be found upon UDF execution. It contains the DEFINE macros, among other things.
+
+Beyond this, the use of UDFs can be very general. For example, this preCICE adapter uses a very simple UDF file (fsi_udf.c) to handle fluid structure interaction coupling. The file contains only
+4 DEFINE macros, each containing a single function that is sourced from the fsi header file (fsi.h) and are written in fsi.c.
+
+### Build requirements
+
+The user-written source code for the UDFs can either be compiled or interpreted in ANSYS Fluent through the Fluent GUI. We are using external functions from the preCICE source code, so we have
+to compile our UDFs. There appears to be no way to inform Fluent of the existance of external libraries when compiling through the GUI. We need some preCICE functions in our UDFs, so we are
+going to have to compile these UDFs outside of the Fluent GUI. When one uses the GUI to compile Fluent UDFs, though, it dynamically writes files based on user inputs: a Makefile, a "user.udf"
+text file, and a udf_names.c file. Fluent also requires a certain directory structure wherein specific files must be placed. If this directory structure isn't strictly followed the UDFs (even if compiled correctly) will not be loaded into the simulation at run time.
+
+### Directory Structure
+
+The end result of compiling the UDF(s) for use in a Fluent simulation is a UDF shared library called `libudf.so`. This library and the compiled code and source code used to build it must
+exist in a specific directory structure. The same directory that contains the `*.cas` file should contain a directory in it called `libudf/`. Within this directory, a sub-directory called `lnamd64/` must exist. The name `lnamd64/` actually depends on your system architecture, but because we are building this on a Linux system, we'll stick with `lnamd64/`.  If the Fluent run is to be executed in serial, the compiled library (`libudf.so`) should exist within a sub-directory of `lnamd64/`. The name of the sub-directory is dependent on whether the simulation is 2D or 3D and whether it is run in single precision or double precision. The following list contains the names for the different simulations that can be run:
+
+- 2d: Two dimensional, single precision simulation.
+- 3d: Three dimensional, single precision simulation.
+- 2ddp: Two dimensional, double precision simulation.
+- 3ddp: Three dimensional, double precision simulation.
+
+If the simulation is to be run in parallel, two sub-directories of `lnamd64/` need to exist, one with a "_host" suffix, and one with a "_node" suffix. A copy of the library `libudf.so` needs to
+exist in each sub-directory.
+
+To summarize, the following directory structure needs to exist for a 2D, single precision FSI simulation run in serial:
+
+```bash
+fluent.cas
+libudf
+└── lnamd64
+    └── 2d
+        ├── fsi_udf.c
+        ├── fsi.c
+        ├── fsi.h
+        ├── user.udf  
+        ├── udf_names.c
+        ├── makefile
+        ├── fsi_udf.o
+        ├── fsi.o
+        ├── udf_names.o
+        ├── libudf.so
+```
+
+The files are:
+
+- `fsi_udf.c`: user-written UDF file containing Fleunt's DEFINE Macros
+- `fsi.c`: user-written UDF file containing custom C-funtions that employ preCICE code  
+- `fsi.h`: user-written header file for fsi.c  
+- `user.udf`: text file used to define file names to be compiled (fsi_udf.c, fsi.c, and fsi.h); sourced by makefile to user-written header file for fsi.c; user may have to edit this file  
+- `udf_names.c`: auto-generated source code file produced by Fluent GUI; DO NOT EDIT THIS FILE  
+- `makefile`: instructions to create proper compile commands; may have to be edited by user to include proper directories  
+- `fsi_udf.o`: compiled object file from fsi_udf.c  
+- `fsi.o`: compiled object file from fsi.c  
+- `udf_names.o`: compiled object file from udf_names.c  
+- `libudf.so`: shared library file that Fluent uses
+
+The following directory structure needs to exist for a 2D, double precision simulation run in parallel:
+
+```bash
+fluent.cas
+libudf
+└── lnamd64
+    └── 2ddp_host
+    |   ├── fsi_udf.c  
+    |   ├── fsi.c  
+    |   ├── fsi.h  
+    |   ├── user.udf  
+    |   ├── udf_names.c  
+    |   ├── makefile  
+    |   ├── fsi_udf.o  
+    |   ├── fsi.o  
+    |   ├── udf_names.o  
+    |   ├── libudf.so  
+    └── 2ddp_node  
+        ├── fsi_udf.c  
+        ├── fsi.c  
+        ├── fsi.h  
+        ├── user.udf  
+        ├── udf_names.c  
+        ├── makefile  
+        ├── fsi_udf.o  
+        ├── fsi.o  
+        ├── udf_names.o  
+        ├── libudf.so  
+```
+
+Please note that the "_node" directory and "_host" directory are copies of one another. Also, the makefile, source files, and intermediary object files (*.o) are not necessarily required to
+be in this directory structure. They are kept here just for convenience. The `libudf.so` file is the only thing required to be read by Fluent.
+
+## 1. How to build the Fluent-preCICE adapter
+
+Given the above 2D, double precicions, parallel run directory structure:
+
+- Adapt `lnamd64/2ddp_host/user.udf`
+  - change "CSOURCES=..." to include a space-separated list of *.c source files to be compiled; for the FSI case we're building this should be fsi_udf.c and fsi.c
+  - change "HSOURCES=..." to include a space-separated list of *.h source heeader files to be compiled; for the FSI case we're building this should be fsi.h
+  - change "FLUENT_INC= " to point to the Fluent install directory. One location may be `/opt/Software/ansys/v202/fluent`. Locations should be of the type `./ansys_inc/v195/fluent`
+- Adapt `lnamd64/2ddp_host/makefile`
+  - change `USER_OBJECTS` variable (line 20) to be a space separated list of the absolute path to libprecice.so and the python library shipped with Fluent
+  - the libprecice.so file can be found in the preCICE install location; for example, `install/precice/2.3.0/lib64/libprecice.so`
+  - the python library can be found in the Fluent installation files; for example, `/opt/Software/ansys/v202/commonfiles/CPython/3_7/linx64/Release/python/lib/libpython3.so`
+  - change `RELEASE` variable to be the ANSYS release version; for example, `RELEASE=20.2.0`
+- build libudf.so: type 'make "FLUENT_ARCH=lnamd64"'
+- clean the build using "make clean"
+- copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
+
+## Installing FlUENT using ANSYS GUI
+
+Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2). Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3). Make sure to test your installation by starting fluent (see below). If Fluent crashes, see the troubleshooting hints.
+
+### ANSYS version 2020 R2 on Ubuntu 20.04
+
+- Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+- The installation hangs between 80-90%. Close partially completed installation.
+
+### ANSYS version 2019 R3 on Ubuntu 20.04
+
+- Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+- The installation completes successfully.
+
+### ANSYS Version 2019 R3 on Ubuntu 16.04
+
+- All packages of ANSYS Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process.
+
+### Troubleshooting
+
+- If you try to start fluent via `fluent 2ddp` and the program exits with the error `Bad substitution`, the following [forum post](https://www.cfd-online.com/Forums/fluent/149668-fluent-16-0-0-ubuntu-12-04-a.html) provides a solution. Short: `sudo dpkg-reconfigure dash`, answer **No** to the questions "Use dash as the default system shell (/bin/sh)?".
+- If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting FLUENT, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution.
+
+## Launching FLUENT
+
+In accordance with the [preCICE documentation](https://precice.org/installation-source-dependencies.html) preCICE, PETSc (if used), and all solvers should run the same MPI implementation and version. So, we need to make sure that the version of preCICE we are running and Fluent use the same MPI. Unfortunately, we don't really know what implementation (Intel, OpenMPI, etc.) or version of MPI Fluent uses. However, FLUENT can be made to run with any version and implementation of an MPI, within reason. Fluent does this using environment variables. To run with a version of OpenMPI set the environment variable `OPENMPI_ROOT`, and to run with a version of IntelMPI set the environment variable `INTELMPI_ROOT`. Upon execution, Fluent will append `/bin/mpirun` to this environment variable, so we should set whichever one we use to the corresponding path. For example, setting:
+
+```bash
+export OPENMPI_ROOT=/opt/Software/openmpi/3.1.4/mpirun
+```
+
+or
+
+```bash
+export INTELMPI_ROOT=/opt/Software/intel_parallel_studio/2018u4/impi/2018.4.274/intel64
+```
+
+will force Fluent to use a system MPI rather than the MPI it's packaged with. A note to the effect will be reflected in Fluent's output when the simulation is run.
+
+**NOTE**:One attempt was made to run Fluent with openmpi/4.0.0, and this failed. This is presumably because Fluent is calling some older MPI commands that are since deprecated. Do not attempt to define both the `OPENMPI_ROOT` and `INTELMPI_ROOT` environment variables. This will just confuse things.
+
+With this environment variable in place, we can now run fluent with or without the GUI, making sure to define the `-mpi=` argument such that it aligns with our environment variable definition.
+
+### Launching with GUI
+
+All ANSYS packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The FLUENT executable is located at `/ansys_inc/vXXX/fluent/bin`.
+
+### Launching without GUI
+
+- serial:   `fluent 2ddp -g < steer-fluent.txt`
+- parallel: `fluent 2ddp -g -t4 -mpi=openmpi < steer-fluent.txt` (-t4 sets 4 processes for computations, steer-fluent.txt is a driver file for Fluent and is only written for convenience)
+
+### 2.3 Line-by-Line Debugging UDFs in Fluent
+
+UDFs can be difficult to debug because they are interpreted within Fluent. Sometimes this leads to misleading statements and tracebacks upon crashing. Some instructions on how to use gdb to
+step through UDF code line-by-line are found [here](https://www.cfd-online.com/Wiki/Udf_debug).
 
 ## References
 
 [1] Gatzhammer, Bernhard. Efficient and Flexible Partitioned Simulation of Fluid-Structure Interactions. PhD Thesis, Department of Informatics, Technical University of Munich, 2014.
-[2] Hertrich, Richard. MSE-Forschungspraktikum: Aktualisierung des preCICE-Fluent Adapters. Studienarbeit, Munich School of Engineering, Technical University of Munich, 2018. 
+[2] Hertrich, Richard. MSE-Forschungspraktikum: Aktualisierung des preCICE-Fluent Adapters. Studienarbeit, Munich School of Engineering, Technical University of Munich, 2018.
 
 ## Disclaimer
 

@@ -14,6 +14,10 @@ core
 tests/test_fluent
 Makefile
 src/makefile
+lnamd64/2ddp_node/makefile
+lnamd64/2ddp_host/makefile
+lnamd64/2ddp_node/makelog
+lnamd64/2ddp_host/makelog
 lnamd64/2d_node/makefile
 lnamd64/2d_host/makefile
 lnamd64/2d_node/makelog

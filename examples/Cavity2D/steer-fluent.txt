@@ -1,0 +1,10 @@
+; commands to send to Fluent to initialize and solve FSI analysis
+
+rc Cavity2D.cas
+
+file/read-journal init-fsi.scm
+
+file/read-journal solve-fsi.scm
+
+exit
+yes

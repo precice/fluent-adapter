@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+
+<precice-configuration>
+
+  <log enabled="true">
+    <sink type="stream" output="stdout"  filter= "%Severity% > trace" format="preCICE:%ColorizedSeverity% %Message%" enabled="true"/>	
+    <sink type="file" output="fluentCSM_debug.log" filter="%Severity% >= trace" enabled="true"/>
+  </log>
+
+  <solver-interface dimensions="2">
+   
+    <data:vector name="Forces"/>
+    <data:vector name="Displacements"/>
+
+    <mesh name="moving_base_nodes">
+      <use-data name="Displacements"/>
+    </mesh>
+
+    <mesh name="moving_base_faces">
+      <use-data name="Forces"/>
+    </mesh>
+    
+    <mesh name="beam">
+      <use-data name="Forces"/>
+      <use-data name="Displacements"/>
+    </mesh>
+
+    <participant name="Fluent">
+      <use-mesh name="moving_base_nodes" provide="yes"/>
+      <use-mesh name="moving_base_faces" provide="yes"/>
+      <use-mesh name="beam" from="CSMdummy"/>
+      <write-data name="Forces" mesh="moving_base_faces"/>
+      <read-data  name="Displacements" mesh="moving_base_nodes"/>
+      <mapping:nearest-projection
+	      direction="write"
+	      from="moving_base_faces"
+	      to="beam"
+	      constraint="conservative"/>
+      <mapping:nearest-projection
+	      direction="read"
+	      from="beam"
+	      to="moving_base_nodes"
+	      constraint="consistent"/>
+    </participant>
+
+    <participant name="CSMdummy">
+      <use-mesh name="beam" provide="yes"/>
+      <use-mesh name="moving_base_faces" from="Fluent"/>
+      <write-data name="Displacements" mesh="beam"/>
+      <read-data  name="Forces"     mesh="beam"/>
+    </participant>
+
+    <m2n:sockets from="Fluent" to="CSMdummy"/>
+
+    <coupling-scheme:serial-implicit> 
+      <participants first="Fluent" second="CSMdummy"/> 
+      <time-window-size value="1.0"/>
+      <max-time value="500"/>
+      <max-iterations value="100"/>
+      <exchange data="Forces" mesh="beam" from="Fluent" to="CSMdummy"/>
+      <exchange data="Displacements" mesh="beam" from="CSMdummy" to="Fluent" initialize="0"/>
+      <relative-convergence-measure limit="1e-4" data="Displacements" mesh="beam"/>
+      <relative-convergence-measure limit="1e-4" data="Forces" mesh="beam"/>
+      <extrapolation-order value="2"/>
+    </coupling-scheme:serial-implicit>                           
+
+  </solver-interface>
+
+</precice-configuration>
