@@ -6,6 +6,14 @@ This adapter was originally developed by Bernhard Gatzhammer as a part of his th
 
 Our [wiki](https://github.com/precice/fluent-adapter/wiki) will help you start.
 
+## Development history
+
+The initial version of this adapter was developed by Bernhard Gatzhammer during the work on his thesis [1].
+
+[Richard Hertrich](https://github.com/richahert) [2] and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/) worked on the adapter in the scope of their work under supervision of [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/).
+
+Mike Tree contributed a [considerable update of the adapter](https://github.com/precice/fluent-adapter/pull/24).
+
 ## References
 
 [1] Gatzhammer, Bernhard. Efficient and Flexible Partitioned Simulation of Fluid-Structure Interactions. PhD Thesis, Department of Informatics, Technical University of Munich, 2014.
