@@ -8,7 +8,7 @@ Our [wiki](https://github.com/precice/fluent-adapter/wiki) will help you start.
 
 ## Development history
 
-The initial version of this adapter was developed by Bernhard Gatzhammer during the work on his thesis [1].
+The initial version of this adapter was developed by Bernhard Gatzhammer as part of his doctoral dissertation [1].
 
 [Richard Hertrich](https://github.com/richahert) [2] and [Ishaan Desai](https://www.ipvs.uni-stuttgart.de/institute/team/Desai/) worked on the adapter in the scope of their work under supervision of [Benjamin Rodenberg](https://www.cs.cit.tum.de/sccs/personen/benjamin-rodenberg/).
 
