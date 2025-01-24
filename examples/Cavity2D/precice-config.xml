@@ -7,28 +7,27 @@
     <sink type="file" output="fluentCSM_debug.log" filter="%Severity% >= trace" enabled="true"/>
   </log>
 
-  <solver-interface dimensions="2">
    
-    <data:vector name="Forces"/>
+    <data:vector name="Forces" />
     <data:vector name="Displacements"/>
 
-    <mesh name="moving_base_nodes">
+    <mesh name="moving_base_nodes" dimensions="2">
       <use-data name="Displacements"/>
     </mesh>
 
-    <mesh name="moving_base_faces">
+    <mesh name="moving_base_faces" dimensions="2">
       <use-data name="Forces"/>
     </mesh>
     
-    <mesh name="beam">
+    <mesh name="beam" dimensions="2">
       <use-data name="Forces"/>
       <use-data name="Displacements"/>
     </mesh>
 
     <participant name="Fluent">
-      <use-mesh name="moving_base_nodes" provide="yes"/>
-      <use-mesh name="moving_base_faces" provide="yes"/>
-      <use-mesh name="beam" from="CSMdummy"/>
+      <provide-mesh name="moving_base_nodes"/>
+      <provide-mesh name="moving_base_faces"/>
+      <receive-mesh name="beam" from="CSMdummy"/>
       <write-data name="Forces" mesh="moving_base_faces"/>
       <read-data  name="Displacements" mesh="moving_base_nodes"/>
       <mapping:nearest-projection
@@ -44,13 +43,13 @@
     </participant>
 
     <participant name="CSMdummy">
-      <use-mesh name="beam" provide="yes"/>
-      <use-mesh name="moving_base_faces" from="Fluent"/>
+      <provide-mesh name="beam"/>
+      <receive-mesh name="moving_base_faces" from="Fluent"/>
       <write-data name="Displacements" mesh="beam"/>
       <read-data  name="Forces"     mesh="beam"/>
     </participant>
 
-    <m2n:sockets from="Fluent" to="CSMdummy"/>
+    <m2n:sockets acceptor="Fluent" connector="CSMdummy" exchange-directory=".."/>
 
     <coupling-scheme:serial-implicit> 
       <participants first="Fluent" second="CSMdummy"/> 
@@ -61,9 +60,6 @@
       <exchange data="Displacements" mesh="beam" from="CSMdummy" to="Fluent" initialize="0"/>
       <relative-convergence-measure limit="1e-4" data="Displacements" mesh="beam"/>
       <relative-convergence-measure limit="1e-4" data="Forces" mesh="beam"/>
-      <extrapolation-order value="2"/>
     </coupling-scheme:serial-implicit>                           
-
-  </solver-interface>
 
 </precice-configuration>

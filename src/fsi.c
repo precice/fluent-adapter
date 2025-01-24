@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "SolverInterfaceC.h"
+#include "precice/preciceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -48,7 +48,6 @@ void set_mesh_positions(Domain* domain);
  * */
 void fsi_init(Domain* domain)
 {
-    double solve_dt = 0;
     int udf_convergence = 1;
     int udf_iterate = 0;
 
@@ -71,7 +70,7 @@ void fsi_init(Domain* domain)
     /* temporarily hard coding Solver name */
     if (RP_Variable_Exists_P("udf/config-location")){
         const char *config_loc = RP_Get_String("udf/config-location");
-        precicec_createSolverInterface("Fluent", config_loc, solver_process_id,
+        precicec_createParticipant("Fluent", config_loc, solver_process_id,
                 solver_process_size);
     }
     else {
@@ -92,12 +91,24 @@ void fsi_init(Domain* domain)
     
     /* Set coupling mesh positions (faces and nodes)*/
     set_mesh_positions(domain);
-
+    int vertexSize = wet_face_size;
+    const int forceDim = precicec_getDataDimensions("moving_base_faces", "Forces");
+    double* forces = malloc(vertexSize*forceDim);
+    int* vertexIDs = malloc(sizeof(int) * vertexSize);
     printf("  (%d) Initializing coupled simulation\n", myid);
-    timestep_limit = precicec_initialize();
+
+    
+    #if !RP_HOST
+    if (precicec_requiresInitialData()) {
+    precicec_writeData("moving_base_nodes", "Displacements",vertexSize, vertexIDs, forces); 
+    precicec_writeData("moving_base_faces", "Forces",vertexSize, vertexIDs, forces);
+    }
+    precicec_initialize();    
+
     /* Set the solver time step to be the minimum of the precice time step an the
      * current time step */
-    solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
+    timestep_limit = precicec_getMaxTimeStepSize();
+    double solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
     printf("  (%d) Initialization done\n", myid);
     #endif /* !RP_HOST */
 
@@ -112,16 +123,7 @@ void fsi_init(Domain* domain)
     }
     #endif /* !RP_NODE */
 
-    #if !RP_HOST
-    if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
-        printf("  (%d) Implicit coupling\n", myid);
-        udf_convergence = 0;
-        udf_iterate = 1;
-        precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
-    }
-    else {
-        printf("  (%d) Explicit coupling\n", myid);
-    }
+
     printf("  (%d) Synchronizing Fluent processes\n", myid);
     PRF_GSYNC();
 
@@ -149,35 +151,17 @@ void fsi_write_and_advance()
     /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
     #if !RP_HOST
     printf("\n(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
-    int subcycling = !precicec_isWriteDataRequired(CURRENT_TIMESTEP);
     double timestep_limit = 0.0;
-
-    if (subcycling){
-        Message("  (%d) In subcycle, skip writing\n", myid);
-    }
-    else {
-        if (wet_face_size > 0){
+    if (wet_face_size > 0){
           write_forces();
-      }
     }
-
-    timestep_limit = precicec_advance(CURRENT_TIMESTEP);
+    precicec_advance(CURRENT_TIMESTEP);
+    timestep_limit = precicec_getMaxTimeStepSize();
     /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
     solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
     /* Read coupling state */
     ongoing = precicec_isCouplingOngoing();
     
-    if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
-        udf_convergence = 1;
-      precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
-    }
-    if (precicec_isActionRequired(precicec_actionReadIterationCheckpoint())){
-        udf_convergence = 0;
-      precicec_markActionFulfilled(precicec_actionReadIterationCheckpoint());
-    }
-    if (! precicec_isCouplingOngoing()){
-        udf_convergence = 1;
-    }
     printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
     #endif /* !RP_HOST */  
     
@@ -342,8 +326,8 @@ void set_mesh_positions(Domain* domain)
     face_t face;
     double pos[ND_ND];
     int n = 0, dim = 0, array_index = 0, face_index = 0;
-    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
-    int faceMeshID = precicec_getMeshID("moving_base_faces");
+    char* nodeMeshID = "moving_base_nodes";
+    char* faceMeshID = "moving_base_faces";
 
     if (domain->dynamic_threads == NULL){
         Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
@@ -426,8 +410,8 @@ void set_mesh_positions(Domain* domain)
 void read_displacements(Dynamic_Thread* dt)
 {
     double* displacements = NULL;
-    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
-    int displID = precicec_getDataID("Displacements", nodeMeshID);
+    char* nodeMeshID = "moving_base_nodes";
+    //char* displID = "Displacements";
     int offset = 0;
     int i = 0, n = 0, dim = 0;
     Thread* face_thread  = DT_THREAD(dt);
@@ -445,7 +429,8 @@ void read_displacements(Dynamic_Thread* dt)
         printf("  data size for readBlockVectorData = %d\n", dynamic_thread_node_size[thread_index]);
         //precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         //        displ_indices + offset, displacements + ND_ND * offset);
-        precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index], displ_indices, displacements);
+        double preciceDt = precicec_getMaxTimeStepSize();
+        precicec_readData(nodeMeshID,"Displacements", dynamic_thread_node_size[thread_index], displ_indices,preciceDt, displacements);
         
         printf("After readBlockVectorData\n");
         Message("  (%d) Setting displacements...\n", myid);
@@ -479,8 +464,8 @@ void read_displacements(Dynamic_Thread* dt)
 void write_forces()
 {
     double* forces = NULL;
-    int faceMeshID = precicec_getMeshID("moving_base_faces");
-    int forceID = precicec_getDataID("Forces", faceMeshID);
+    char* faceMeshID = "moving_base_faces";
+    char* forceID = "Forces";
     int i=0, j=0;
     Domain* domain = NULL;
     Dynamic_Thread* dynamic_thread = NULL;
@@ -553,7 +538,7 @@ void write_forces()
     }
     printf("  (%d) ...done (with %d force values)\n", myid, i);
     printf("  (%d) Writing forces...\n", myid);
-    precicec_writeBlockVectorData(forceID, wet_face_size, face_indices, forces);
+    precicec_writeData(faceMeshID,forceID, wet_face_size, face_indices, forces);
     printf("  (%d) ...done\n", myid );
     printf("  (%d) Max force: %f\n", myid, max_force);
     if (thread_counter != dynamic_thread_size){

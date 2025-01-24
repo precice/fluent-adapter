@@ -47,10 +47,10 @@ def computeDisplacements(force_vals, displ_vals, coords_x):
 solver_process_index = 0
 solver_process_size = 1
 
-interface = precice.Interface(participant_name, configuration_file_name, solver_process_index, solver_process_size)
+interface = precice.Participant(participant_name, configuration_file_name, solver_process_index, solver_process_size)
 
-dim = interface.get_dimensions()
-mesh_id = interface.get_mesh_id(mesh_name)
+dim = interface.get_mesh_dimensions("beam")
+mesh_id = mesh_name
 
 vertexSize = 100
 coords_x = np.linspace(0, 1, num=vertexSize)
@@ -63,11 +63,14 @@ print("mesh_id sent to set_mesh_vertices = {}".format(mesh_id))
 
 vertexIDs = interface.set_mesh_vertices(mesh_id, coords)
 
-displIDs = interface.get_data_id("Displacements", mesh_id)
-forceIDs = interface.get_data_id("Forces", mesh_id)
+displIDs = "Displacements"
+forceIDs = "Forces"
 displacements = np.zeros([vertexSize, dim])
 forces = np.zeros([vertexSize, dim])
 dt = 1.0
+if interface.requires_initial_data():
+    interface.writeData("beam", "Forces", vertexIDs, forces)
+    interface.writeData("beam", "Displacements", vertexIDs, displacements)
 
 precice_dt = interface.initialize()
 
