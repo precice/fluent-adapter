@@ -13,12 +13,10 @@ OBJECTS        = $(UDFDATA:.c=.o) $(OBJS2)
 CFLAGS_LNAMD64 = -D_lnamd64 -D_GNU_SOURCE -fpic -shared \
                  -Wno-unused-variable -Wno-unused-but-set-variable \
                  -std=c99 -Wall -O -DPARALLEL -DPTR_RESTRICT= \
-                 -I/opt/precice3/usr/include
+
 
 LDFLAGS_LNAMD64 = -shared -lm \
-                  -L/opt/precice3/usr/lib/x86_64-linux-gnu \
-                  -lprecice
-
+                
 .PHONY: main
 main: $(TARGET)
 

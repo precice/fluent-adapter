@@ -1,6 +1,7 @@
 //#include "fsi.h"
 #include "mockedFluent.c"
-#include "precice/preciceC.h"
+//#include "precice/preciceC.h"
+#include "mockedPreciceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
