@@ -106,9 +106,10 @@ void fsi_init(Domain* domain)
     
     #if !RP_HOST
     if (precicec_requiresInitialData()) {
-    precicec_writeData(nodeMeshName, displDataName, vertexSize, vertexIDs, forces); 
-    precicec_writeData(faceMeshName, forceDataName, vertexSize, vertexIDs, forces);
+        precicec_writeData(nodeMeshName, displDataName, vertexSize, vertexIDs, forces);
+        precicec_writeData(faceMeshName, forceDataName, vertexSize, vertexIDs, forces);
     }
+    
     precicec_initialize();    
 
     /* Set the solver time step to be the minimum of the precice time step an the
@@ -129,6 +130,15 @@ void fsi_init(Domain* domain)
     }
     #endif /* !RP_NODE */
 
+    #if !RP_HOST
+    if (precicec_requiresWritingCheckpoint()){
+        printf("  (%d) Implicit coupling\n", myid);
+        udf_convergence = 0;
+        udf_iterate = 1;
+    }
+    else {
+        printf("  (%d) Explicit coupling\n", myid);
+    }
 
     printf("  (%d) Synchronizing Fluent processes\n", myid);
     PRF_GSYNC();
@@ -159,7 +169,7 @@ void fsi_write_and_advance()
     printf("\n(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
     double timestep_limit = 0.0;
     if (wet_face_size > 0){
-          write_forces();
+        write_forces();
     }
     precicec_advance(CURRENT_TIMESTEP);
     timestep_limit = precicec_getMaxTimeStepSize();
@@ -167,6 +177,16 @@ void fsi_write_and_advance()
     solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
     /* Read coupling state */
     ongoing = precicec_isCouplingOngoing();
+
+    if (precicec_requiresWritingCheckpoint()){
+        udf_convergence = 1;
+    }
+    if (precicec_requiresReadingCheckpoint()){
+        udf_convergence = 0;
+    }
+    if (!precicec_isCouplingOngoing()){
+        udf_convergence = 1;
+    }
     
     printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
     #endif /* !RP_HOST */  
