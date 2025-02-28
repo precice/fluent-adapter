@@ -124,17 +124,18 @@ Given the above 2D, double precicions, parallel run directory structure:
 - clean the build using "make clean"
 - copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
 ## 2. How to generate a makefile
-Given that you already have a license, generating a makefile is pretty straight forward.
-  - Open Fluent workbench and generate a 2D geometry, a mesh, setup your fluent and run the simulation using Fluent.
-  - Save everything and exit the workbench
-  - Go to your project directory and then to `/trial_files/dp0/FLU/Fluent/libudf/lnamd64/2ddp_host`
+Given that you already have a license, generating a makefile is quite straight forward.
+  - Open Fluent workbench and generate a 2D geometry, a mesh, setup your Fluent and run the simulation.
+  - Save everything and exit the workbench.
+  - Go to your project directory and then to `/trial_files/dp0/FLU/Fluent/libudf/lnamd64/2ddp_host`.
   - Copy your makefile and follow the steps from above to adjust is to your project
 ## Installing FlUENT using ANSYS GUI
 
 Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2). Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3). Make sure to test your installation by starting fluent (see below). If Fluent crashes, see the troubleshooting hints.
 
 ### ANSYS version 2023 R2 on Ubuntu 22.04
-- Before running the installation you should install some libraries to allow the ANSYS GUI to run smoothly : 
+- Before running the installation, you should install some libraries to allow the ANSYS GUI to run smoothly: 
+
 ```bash
 sudo apt update
 sudo apt install libxcb-xinerama0 libxcb-util1 libx11-xcb1 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0
@@ -152,7 +153,7 @@ export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt5/plugins/platfor
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH://ansys_inc/v232/tp/qt/5.9.6/linx64/lib
 ```
-if you run into a problem related to Ans.QT.dll while launching the workbench
+if you run into a problem related to Ans.QT.dll while launching the workbench.
 
 ### ANSYS version 2020 R2 on Ubuntu 20.04
 
@@ -169,6 +170,7 @@ if you run into a problem related to Ans.QT.dll while launching the workbench
 - All packages of ANSYS Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process.
 
 ### ANSYS version 2024 on Ubuntu
+
 - ANSYS 2024 is not completely supported on Ubuntu yet, there are some dependency problems between the OS and the software and even if the installation is successfull you might run into problems while trying to work with the workbench, and according to this [forum](https://innovationspace.ansys.com/forum/forums/topic/error-while-loading-the-dockingpane/) certain issues are never resolved. So reverting to ANSYS 2023 is highly advised. [Ansys 24 platform support](https://www.ansys.com/content/dam/it-solutions/platform-support/ansys-platform-support-strategy-plans-december-2024.pdf) describes which systems are supported for each version of ANSYS
    
 ### Troubleshooting

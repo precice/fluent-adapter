@@ -326,8 +326,8 @@ void set_mesh_positions(Domain* domain)
     face_t face;
     double pos[ND_ND];
     int n = 0, dim = 0, array_index = 0, face_index = 0;
-    char* nodeMeshID = "moving_base_nodes";
-    char* faceMeshID = "moving_base_faces";
+    char* nodeMeshName = "moving_base_nodes";
+    char* faceMeshName = "moving_base_faces";
 
     if (domain->dynamic_threads == NULL){
         Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
@@ -410,7 +410,7 @@ void set_mesh_positions(Domain* domain)
 void read_displacements(Dynamic_Thread* dt)
 {
     double* displacements = NULL;
-    char* nodeMeshID = "moving_base_nodes";
+    char* nodeMeshName = "moving_base_nodes";
     //char* displID = "Displacements";
     int offset = 0;
     int i = 0, n = 0, dim = 0;
@@ -430,7 +430,7 @@ void read_displacements(Dynamic_Thread* dt)
         //precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         //        displ_indices + offset, displacements + ND_ND * offset);
         double preciceDt = precicec_getMaxTimeStepSize();
-        precicec_readData(nodeMeshID,"Displacements", dynamic_thread_node_size[thread_index], displ_indices,preciceDt, displacements);
+        precicec_readData(nodeMeshName, "Displacements", dynamic_thread_node_size[thread_index], displ_indices, preciceDt, displacements);
         
         printf("After readBlockVectorData\n");
         Message("  (%d) Setting displacements...\n", myid);
@@ -464,8 +464,8 @@ void read_displacements(Dynamic_Thread* dt)
 void write_forces()
 {
     double* forces = NULL;
-    char* faceMeshID = "moving_base_faces";
-    char* forceID = "Forces";
+    char* faceMeshName = "moving_base_faces";
+    char* forceDataName = "Forces";
     int i=0, j=0;
     Domain* domain = NULL;
     Dynamic_Thread* dynamic_thread = NULL;
@@ -538,7 +538,7 @@ void write_forces()
     }
     printf("  (%d) ...done (with %d force values)\n", myid, i);
     printf("  (%d) Writing forces...\n", myid);
-    precicec_writeData(faceMeshID,forceID, wet_face_size, face_indices, forces);
+    precicec_writeData(faceMeshName, forceDataName, wet_face_size, face_indices, forces);
     printf("  (%d) ...done\n", myid );
     printf("  (%d) Max force: %f\n", myid, max_force);
     if (thread_counter != dynamic_thread_size){
