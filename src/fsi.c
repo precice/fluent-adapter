@@ -88,11 +88,17 @@ void fsi_init(Domain* domain)
         dynamic_thread_node_size[i] = 0;
         dynamic_thread_face_size[i] = 0;
     }
+
+    /* Define mesh and data names */
+    char* nodeMeshName = "moving_base_nodes";
+    char* faceMeshName = "moving_base_faces";
+    char* displDataName = "Displacements";
+    char* forceDataName = "Forces";
     
     /* Set coupling mesh positions (faces and nodes)*/
     set_mesh_positions(domain);
     int vertexSize = wet_face_size;
-    const int forceDim = precicec_getDataDimensions("moving_base_faces", "Forces");
+    const int forceDim = precicec_getDataDimensions(faceMeshName, forceDataName);
     double* forces = malloc(vertexSize*forceDim);
     int* vertexIDs = malloc(sizeof(int) * vertexSize);
     printf("  (%d) Initializing coupled simulation\n", myid);
@@ -100,8 +106,8 @@ void fsi_init(Domain* domain)
     
     #if !RP_HOST
     if (precicec_requiresInitialData()) {
-    precicec_writeData("moving_base_nodes", "Displacements",vertexSize, vertexIDs, forces); 
-    precicec_writeData("moving_base_faces", "Forces",vertexSize, vertexIDs, forces);
+    precicec_writeData(nodeMeshName, displDataName, vertexSize, vertexIDs, forces); 
+    precicec_writeData(faceMeshName, forceDataName, vertexSize, vertexIDs, forces);
     }
     precicec_initialize();    
 
@@ -411,7 +417,7 @@ void read_displacements(Dynamic_Thread* dt)
 {
     double* displacements = NULL;
     char* nodeMeshName = "moving_base_nodes";
-    //char* displID = "Displacements";
+    char* displDataName = "Displacements";
     int offset = 0;
     int i = 0, n = 0, dim = 0;
     Thread* face_thread  = DT_THREAD(dt);
@@ -430,7 +436,7 @@ void read_displacements(Dynamic_Thread* dt)
         //precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
         //        displ_indices + offset, displacements + ND_ND * offset);
         double preciceDt = precicec_getMaxTimeStepSize();
-        precicec_readData(nodeMeshName, "Displacements", dynamic_thread_node_size[thread_index], displ_indices, preciceDt, displacements);
+        precicec_readData(nodeMeshName, displDataName, dynamic_thread_node_size[thread_index], displ_indices, preciceDt, displacements);
         
         printf("After readBlockVectorData\n");
         Message("  (%d) Setting displacements...\n", myid);
