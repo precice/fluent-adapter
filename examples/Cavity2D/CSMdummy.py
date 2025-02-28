@@ -1,14 +1,7 @@
 from __future__ import division
 
-import argparse
 import numpy as np
 import precice
-from mpi4py import MPI
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("configurationFileName", help="Name of the xml config file.", type=str)
-# parser.add_argument("participantName", help="Name of the solver.", type=str)
-# parser.add_argument("meshName", help="Name of the mesh.", type=str)
 
 configuration_file_name = "precice-config.xml"
 participant_name = "CSMdummy"
@@ -49,8 +42,7 @@ solver_process_size = 1
 
 interface = precice.Participant(participant_name, configuration_file_name, solver_process_index, solver_process_size)
 
-dim = interface.get_mesh_dimensions("beam")
-mesh_id = mesh_name
+dim = interface.get_mesh_dimensions(mesh_name)
 
 vertexSize = 100
 coords_x = np.linspace(0, 1, num=vertexSize)
@@ -59,18 +51,18 @@ coords_y = np.linspace(0, 0, num=vertexSize)
 coords = np.stack([coords_x, coords_y], axis=1)
 
 print("coordinate array to be sent to set_mesh_vertices = {}".format(coords))
-print("mesh_id sent to set_mesh_vertices = {}".format(mesh_id))
+print("mesh_name sent to set_mesh_vertices = {}".format(mesh_name))
 
-vertexIDs = interface.set_mesh_vertices(mesh_id, coords)
+vertexIDs = interface.set_mesh_vertices(mesh_name, coords)
 
-displIDs = "Displacements"
-forceIDs = "Forces"
+displ_name = "Displacements"
+force_name = "Forces"
 displacements = np.zeros([vertexSize, dim])
 forces = np.zeros([vertexSize, dim])
 dt = 1.0
 if interface.requires_initial_data():
-    interface.writeData("beam", "Forces", vertexIDs, forces)
-    interface.writeData("beam", "Displacements", vertexIDs, displacements)
+    interface.writeData(mesh_name, force_name, vertexIDs, forces)
+    interface.writeData(mesh_name, displ_name, vertexIDs, displacements)
 
 precice_dt = interface.initialize()
 
@@ -80,7 +72,7 @@ while interface.is_coupling_ongoing():
         print("CSMdummy: Writing iteration checkpoint")
         interface.mark_action_fulfilled(precice.action_write_iteration_checkpoint())
 
-    forces = interface.read_block_vector_data(forceIDs, vertexIDs)
+    forces = interface.read_block_vector_data(force_name, vertexIDs)
     print("Forces read in:\n{}".format(forces))
 
     displacements = computeDisplacements(forces, displacements, coords_x)
@@ -88,7 +80,7 @@ while interface.is_coupling_ongoing():
 
     dt = min(precice_dt, dt)
 
-    interface.write_block_vector_data(displIDs, vertexIDs, displacements)
+    interface.write_block_vector_data(displ_name, vertexIDs, displacements)
 
     precice_dt = interface.advance(dt)
 
