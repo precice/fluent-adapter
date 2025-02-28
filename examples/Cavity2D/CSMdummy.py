@@ -59,18 +59,20 @@ displ_name = "Displacements"
 force_name = "Forces"
 displacements = np.zeros([vertexSize, dim])
 forces = np.zeros([vertexSize, dim])
-dt = 1.0
+solver_dt = 1.0
 if interface.requires_initial_data():
     interface.write_data(mesh_name, force_name, vertexIDs, forces)
     interface.write_data(mesh_name, displ_name, vertexIDs, displacements)
 
-precice_dt = interface.initialize()
+interface.initialize()
 
 while interface.is_coupling_ongoing():
 
-    if interface.is_action_required(precice.action_write_iteration_checkpoint()):
+    if interface.requires_writing_checkpoint():
         print("CSMdummy: Writing iteration checkpoint")
-        interface.mark_action_fulfilled(precice.action_write_iteration_checkpoint())
+
+    precice_dt = interface.get_max_time_step_size()
+    dt = min(precice_dt, solver_dt)
 
     forces = interface.read_data(mesh_name, force_name, vertexIDs, dt)
     print("Forces read in:\n{}".format(forces))
@@ -78,15 +80,12 @@ while interface.is_coupling_ongoing():
     displacements = computeDisplacements(forces, displacements, coords_x)
     print("Computed Displacements:\n{}".format(displacements))
 
-    dt = min(precice_dt, dt)
-
     interface.write_data(mesh_name, displ_name, vertexIDs, displacements)
 
-    precice_dt = interface.advance(dt)
+    interface.advance(dt)
 
-    if interface.is_action_required(precice.action_read_iteration_checkpoint()):
+    if interface.requires_reading_checkpoint():
         print("CSMdummy: Reading iteration checkpoint")
-        interface.mark_action_fulfilled(precice.action_read_iteration_checkpoint())
     else:
         print("CSMdummy: advancing in time")
 
