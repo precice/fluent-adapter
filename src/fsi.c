@@ -44,7 +44,7 @@ void set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
- * fsi_init is directly called by FLUENT UDF Functionality
+ * fsi_init is directly called by Fluent UDF Functionality
  * */
 void fsi_init(Domain* domain)
 {
@@ -140,7 +140,7 @@ void fsi_init(Domain* domain)
 
 /* Main function advances the interface time step and provides the mechanism
  * for proper coupling scheme to be applied
- * fsi_write_and_advance is directly called by FLUENT UDF functionality
+ * fsi_write_and_advance is directly called by Fluent UDF functionality
  * */
 void fsi_write_and_advance()
 {
@@ -179,10 +179,10 @@ void fsi_write_and_advance()
     #endif /* !RP_NODE */
 }
 
-/* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
+/* Function to be attached to the Dynamic Mesh in Fluent in the form of a UDF.
  * This function will read the displacements values from interface and move the
  * structural mesh accordingly
- * fsi_grid_motion is directly related to mesh motion in FLUENT UDF Functionality
+ * fsi_grid_motion is directly related to mesh motion in Fluent UDF Functionality
  * */
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
@@ -404,7 +404,7 @@ void set_mesh_positions(Domain* domain)
 }
 
 /* This functions reads the new displacements provided by the structural
- * solver and moves the mesh coordinates in FLUENT with the corresponding
+ * solver and moves the mesh coordinates in Fluent with the corresponding
  * values
  * */
 void read_displacements(Dynamic_Thread* dt)
@@ -458,7 +458,7 @@ void read_displacements(Dynamic_Thread* dt)
     Message("  (%d) Max displacement delta: %f\n", myid, max_displ_delta);
 }
 
-/* This function writes the new forces on the structure calculated in FLUENT to the
+/* This function writes the new forces on the structure calculated in Fluent to the
  * Structural solver
  */
 void write_forces()

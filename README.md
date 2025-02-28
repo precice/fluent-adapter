@@ -1,6 +1,6 @@
-# preCICE-adapter for the CFD code ANSYS Fluent
+# preCICE-adapter for the CFD code Ansys Fluent
 
-**This adapter is valid for FLUENT 19.5 and preCICE v2.2 on Ubuntu 20.04**
+**This adapter is valid for Ansys Fluent 19.5 and preCICE v2.2 on Ubuntu 20.04**
 
 The Fluent preCICE adapter operates using Fluent's User-Defined Function (UDF) feature. UDFs are functions written in the C programming language that are dynamically loaded with the Fluent
 solver and can be used to enhance and generalize its standard features. For example, UDFs can be used to:
@@ -12,7 +12,7 @@ solver and can be used to enhance and generalize its standard features. For exam
 
 ## Fluent UDF Requirements
 
-Details about UDFs can be found in the UDF Manual provided by ANSYS Fluent. A summary of the major requirements follows.
+Details about UDFs can be found in the UDF Manual provided by Ansys Fluent. A summary of the major requirements follows.
 
 ### File requirements
 
@@ -24,7 +24,7 @@ Beyond this, the use of UDFs can be very general. For example, this preCICE adap
 
 ### Build requirements
 
-The user-written source code for the UDFs can either be compiled or interpreted in ANSYS Fluent through the Fluent GUI. We are using external functions from the preCICE source code, so we have
+The user-written source code for the UDFs can either be compiled or interpreted in Ansys Fluent through the Fluent GUI. We are using external functions from the preCICE source code, so we have
 to compile our UDFs. There appears to be no way to inform Fluent of the existance of external libraries when compiling through the GUI. We need some preCICE functions in our UDFs, so we are
 going to have to compile these UDFs outside of the Fluent GUI. When one uses the GUI to compile Fluent UDFs, though, it dynamically writes files based on user inputs: a Makefile, a "user.udf"
 text file, and a udf_names.c file. Fluent also requires a certain directory structure wherein specific files must be placed. If this directory structure isn't strictly followed the UDFs (even if compiled correctly) will not be loaded into the simulation at run time.
@@ -112,16 +112,16 @@ be in this directory structure. They are kept here just for convenience. The `li
 Given the above 2D, double precicions, parallel run directory structure:
 
 - Adapt `lnamd64/2ddp_host/user.udf`
-  - change "CSOURCES=..." to include a space-separated list of *.c source files to be compiled; for the FSI case we're building this should be fsi_udf.c and fsi.c
-  - change "HSOURCES=..." to include a space-separated list of *.h source heeader files to be compiled; for the FSI case we're building this should be fsi.h
-  - change "FLUENT_INC= " to point to the Fluent install directory. One location may be `/opt/Software/ansys/v202/fluent`. Locations should be of the type `./ansys_inc/v195/fluent`
+  - change `CSOURCES=...` to include a space-separated list of *.c source files to be compiled; for the FSI case we're building this should be fsi_udf.c and fsi.c
+  - change `HSOURCES=...` to include a space-separated list of *.h source heeader files to be compiled; for the FSI case we're building this should be fsi.h
+  - change `FLUENT_INC=...` to point to the Fluent install directory. One location may be `/opt/Software/ansys/v202/fluent`. Locations should be of the type `./ansys_inc/v195/fluent`
 - Adapt `lnamd64/2ddp_host/makefile`
   - change `USER_OBJECTS` variable (line 20) to be a space separated list of the absolute path to libprecice.so and the python library shipped with Fluent
   - the libprecice.so file can be found in the preCICE install location; for example, `install/precice/2.3.0/lib64/libprecice.so`
   - the python library can be found in the Fluent installation files; for example, `/opt/Software/ansys/v202/commonfiles/CPython/3_7/linx64/Release/python/lib/libpython3.so`
-  - change `RELEASE` variable to be the ANSYS release version; for example, `RELEASE=20.2.0`
-- build libudf.so: type 'make "FLUENT_ARCH=lnamd64"'
-- clean the build using "make clean"
+  - change `RELEASE` variable to be the Ansys release version; for example, `RELEASE=20.2.0`
+- build libudf.so: type `make "FLUENT_ARCH=lnamd64"`
+- clean the build using `make clean`
 - copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
 ## 2. How to generate a makefile
 Given that you already have a license, generating a makefile is quite straight forward.
@@ -129,12 +129,12 @@ Given that you already have a license, generating a makefile is quite straight f
   - Save everything and exit the workbench.
   - Go to your project directory and then to `/trial_files/dp0/FLU/Fluent/libudf/lnamd64/2ddp_host`.
   - Copy your makefile and follow the steps from above to adjust is to your project
-## Installing FlUENT using ANSYS GUI
+## Installing Ansys Fluent using Ansys GUI
 
-Ubuntu 20.04 is not officially supported by ANSYS and hence only the FLUENT package works on this distribution. All other packages (ANSYS Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for ANSYS version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2). Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3). Make sure to test your installation by starting fluent (see below). If Fluent crashes, see the troubleshooting hints.
+Ubuntu 20.04 is not officially supported by Ansys and hence only the Fluent package works on this distribution. All other packages (Ansys Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for Ansys version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2). Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3). Make sure to test your installation by starting fluent (see below). If Fluent crashes, see the troubleshooting hints.
 
-### ANSYS version 2023 R2 on Ubuntu 22.04
-- Before running the installation, you should install some libraries to allow the ANSYS GUI to run smoothly: 
+### Ansys version 2023 R2 on Ubuntu 22.04
+- Before running the installation, you should install some libraries to allow the Ansys GUI to run smoothly: 
 
 ```bash
 sudo apt update
@@ -155,32 +155,32 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH://ansys_inc/v232/tp/qt/5.9.6/linx64/lib
 ```
 if you run into a problem related to Ans.QT.dll while launching the workbench.
 
-### ANSYS version 2020 R2 on Ubuntu 20.04
+### Ansys version 2020 R2 on Ubuntu 20.04
 
-- Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+- Run `./INSTALL` from the Ansys directory and follow steps of installation as seen in the GUI
 - The installation hangs between 80-90%. Close partially completed installation.
 
-### ANSYS version 2019 R3 on Ubuntu 20.04
+### Ansys version 2019 R3 on Ubuntu 20.04
 
-- Run `./INSTALL` from the ANSYS directory and follow steps of installation as seen in the GUI
+- Run `./INSTALL` from the Ansys directory and follow steps of installation as seen in the GUI
 - The installation completes successfully.
 
-### ANSYS Version 2019 R3 on Ubuntu 16.04
+### Ansys Version 2019 R3 on Ubuntu 16.04
 
-- All packages of ANSYS Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process.
+- All packages of Ansys Version 2019 R3 work on Ubuntu 16.04 and this [forum post](https://www.cfd-online.com/Forums/ansys/199190-ansys-18-2-ubuntu-16-04-installation-guide.html) describes the installation process.
 
-### ANSYS version 2024 on Ubuntu
+### Ansys version 2024 on Ubuntu
 
-- ANSYS 2024 is not completely supported on Ubuntu yet, there are some dependency problems between the OS and the software and even if the installation is successfull you might run into problems while trying to work with the workbench, and according to this [forum](https://innovationspace.ansys.com/forum/forums/topic/error-while-loading-the-dockingpane/) certain issues are never resolved. So reverting to ANSYS 2023 is highly advised. [Ansys 24 platform support](https://www.ansys.com/content/dam/it-solutions/platform-support/ansys-platform-support-strategy-plans-december-2024.pdf) describes which systems are supported for each version of ANSYS
+- Ansys 2024 is not completely supported on Ubuntu yet, there are some dependency problems between the OS and the software and even if the installation is successfull you might run into problems while trying to work with the workbench, and according to this [forum](https://innovationspace.ansys.com/forum/forums/topic/error-while-loading-the-dockingpane/) certain issues are never resolved. So reverting to Ansys 2023 is highly advised. [Ansys 24 platform support](https://www.ansys.com/content/dam/it-solutions/platform-support/ansys-platform-support-strategy-plans-december-2024.pdf) describes which systems are supported for each version of Ansys
    
 ### Troubleshooting
 
 - If you try to start fluent via `fluent 2ddp` and the program exits with the error `Bad substitution`, the following [forum post](https://www.cfd-online.com/Forums/fluent/149668-fluent-16-0-0-ubuntu-12-04-a.html) provides a solution. Short: `sudo dpkg-reconfigure dash`, answer **No** to the questions "Use dash as the default system shell (/bin/sh)?".
-- If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting FLUENT, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution.
+- If the error: `undefined symbol: FT_Done_MM_Var` is encountered on starting Fluent, the following [forum post](https://www.cfd-online.com/Forums/fluent/227651-fluent-ubuntu-20-04-a.html) has the solution.
 
-## Launching FLUENT
+## Launching Ansys Fluent
 
-In accordance with the [preCICE documentation](https://precice.org/installation-source-dependencies.html) preCICE, PETSc (if used), and all solvers should run the same MPI implementation and version. So, we need to make sure that the version of preCICE we are running and Fluent use the same MPI. Unfortunately, we don't really know what implementation (Intel, OpenMPI, etc.) or version of MPI Fluent uses. However, FLUENT can be made to run with any version and implementation of an MPI, within reason. Fluent does this using environment variables. To run with a version of OpenMPI set the environment variable `OPENMPI_ROOT`, and to run with a version of IntelMPI set the environment variable `INTELMPI_ROOT`. Upon execution, Fluent will append `/bin/mpirun` to this environment variable, so we should set whichever one we use to the corresponding path. For example, setting:
+In accordance with the [preCICE documentation](https://precice.org/installation-source-dependencies.html) preCICE, PETSc (if used), and all solvers should run the same MPI implementation and version. So, we need to make sure that the version of preCICE we are running and Fluent use the same MPI. Unfortunately, we don't really know what implementation (Intel, OpenMPI, etc.) or version of MPI Fluent uses. However, Fluent can be made to run with any version and implementation of an MPI, within reason. Fluent does this using environment variables. To run with a version of OpenMPI set the environment variable `OPENMPI_ROOT`, and to run with a version of IntelMPI set the environment variable `INTELMPI_ROOT`. Upon execution, Fluent will append `/bin/mpirun` to this environment variable, so we should set whichever one we use to the corresponding path. For example, setting:
 
 ```bash
 export OPENMPI_ROOT=/opt/Software/openmpi/3.1.4/mpirun
@@ -200,7 +200,7 @@ With this environment variable in place, we can now run fluent with or without t
 
 ### Launching with GUI
 
-All ANSYS packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The FLUENT executable is located at `/ansys_inc/vXXX/fluent/bin`.
+All Ansys packages are installed in a folder `ansys_inc/` at the location defined by the user during installation. The Fluent executable is located at `/ansys_inc/vXXX/fluent/bin`.
 
 ### Launching without GUI
 
@@ -227,4 +227,4 @@ Mike Tree contributed a [considerable update of the adapter](https://github.com/
 
 ## Disclaimer
 
-This offering is not approved or endorsed by ANSYS, Inc., producer and distributor of ANSYS Fluent.
+This offering is not approved or endorsed by Ansys, Inc., producer and distributor of Ansys Fluent.

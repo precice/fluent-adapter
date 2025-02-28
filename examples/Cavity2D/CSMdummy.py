@@ -17,7 +17,7 @@ def computeDisplacements(force_vals, displ_vals, coords_x):
     MI = pow(a, 4) / 12
     # Modulus of elasticity of copper = 117 GPa
     ME = 117 * pow(10, 9)
-    # Length of beam = 1 m as stated in FLUENT
+    # Length of beam = 1 m as stated in Fluent
     ll = 1
 
     displ_vals[:, 1] = (1 / (24 * ME * MI * ll)) * \
