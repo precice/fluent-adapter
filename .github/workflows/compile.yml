@@ -9,17 +9,15 @@ on:
 jobs:
   build-udf:
     runs-on: ubuntu-latest
+    container: precice/precice:nightly
 
     steps:
-      # 1) Check out your code
       - name: Check out repository
         uses: actions/checkout@v3
 
-      # 2) (Optional) Install dependencies (if you need apt-get packages)
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
-      # 3) Go into the directory containing your Makefile and run make
       - name: Compile the UDF
         working-directory: examples/Cavity2D/libudf/lnamd64/2ddp_host
         run: make
