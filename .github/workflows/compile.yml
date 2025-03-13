@@ -22,7 +22,7 @@ jobs:
         id: parse_make
         shell: bash
         run: |
-          MAKEFILE_PATH="examples/Cavity2D/libudf/lnamd64/2ddp_host/Makefile"
+          MAKEFILE_PATH="examples/Cavity2D/libudf/lnamd64/2ddp_host/makefile"
           
           user_objects_line="$(grep -E '^USER_OBJECTS\s*=' "$MAKEFILE_PATH")"
           
