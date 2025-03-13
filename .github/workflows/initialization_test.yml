@@ -24,7 +24,7 @@ jobs:
           cd examples/Cavity2D/libudf/lnamd64
           gcc -Wall -Wextra -Wno-unused-variable \
             -Wno-unused-parameter -Wno-unused-but-set-variable \
-            -o test_fsi \
+            -o test_fsi.out \
             Tests/Unit/tests.c \
             Tests/mocks/precice/preciceC.c \
             2ddp_host/fsi.c \
@@ -32,9 +32,10 @@ jobs:
             -I2ddp_host \
             -I2ddp_host/mocked_folders/fluent23.2.0/src \
             -ITests/mocks/precice \
+            -ITests/mocks \
             -lm
 
       - name: Run Tests
         run: |
           cd examples/Cavity2D/libudf/lnamd64
-          ./test_fsi
+          ./test_fsi.out
