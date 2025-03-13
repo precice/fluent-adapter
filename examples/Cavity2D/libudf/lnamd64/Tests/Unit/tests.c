@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "mock_preciceC.h"
+#include "preciceC.h"
 
 #include "fsi.h"
 

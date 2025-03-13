@@ -1,4 +1,4 @@
-#include "mock_preciceC.h"
+#include "preciceC.h"
 #include <stdio.h>
 
 
