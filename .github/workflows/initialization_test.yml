@@ -1,0 +1,38 @@
+name: Test Fluent Adapter
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test-fluent-adapter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Compile Tests
+        run: |
+          cd examples/Cavity2D/libudf/lnamd64
+          gcc -Wall -Wextra -o test_fsi \
+            Tests/Unit/tests.c \
+            Tests/mock_preciceC.c \
+            mock_fluent.c \
+            2ddp_host/fsi.c \
+            -I2ddp_host \
+            -I2ddp_host/mocked_folders/fluent23.2.0/src \
+            -ITests \
+            -lm
+
+      - name: Run Tests
+        run: |
+          cd examples/Cavity2D/libudf/lnamd64
+          ./test_fsi
