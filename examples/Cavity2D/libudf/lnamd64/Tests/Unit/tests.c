@@ -43,9 +43,6 @@ static void test_fsi_init_creates_participant()
 static void test_fsi_grid_motion_calls_finalize_when_not_ongoing()
 {
 
-  extern int precicec_isCouplingOngoing(void);
-
-
   mock_finalize_call_count = 0;
 
   Thread face_thread;
