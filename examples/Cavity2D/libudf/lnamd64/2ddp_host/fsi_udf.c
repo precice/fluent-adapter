@@ -1,5 +1,4 @@
 #include "fsi.h"
-#include "mock_udf.c"
 /* This is a general purpose macro which does basic initialisation 
  * of all UDF relevant variables after the flow field has been 
  * initialised in Fluent
@@ -31,8 +30,8 @@ DEFINE_GRID_MOTION(gridmotions,domain,dt,time,dtime)
 }
 
 /* Same as above */
-DEFINE_ON_DEMAND(plot_coords)
+/*DEFINE_ON_DEMAND(plot_coords)
 {
   fsi_plot_coords();
 }
- 
+*/ 
