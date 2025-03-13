@@ -17,9 +17,28 @@ jobs:
 
       - name: Install system dependencies
         run: apt-get update && apt-get install -y build-essential
-        
-      - name: Locate libprecice.so
-        run: find /usr -name "libprecice.so"
+
+      - name: Parse Makefile
+        id: parse_make
+        shell: bash
+        run: |
+          MAKEFILE_PATH="examples/Cavity2D/libudf/lnamd64/2ddp_host/Makefile"
+          
+          user_objects_line="$(grep -E '^USER_OBJECTS\s*=' "$MAKEFILE_PATH")"
+          
+          user_objects_value="$(echo "$user_objects_line" | cut -d '=' -f2 | xargs)"
+          
+          echo "user_objects_value=$user_objects_value" >> "$GITHUB_OUTPUT"
+      
+      - name: Create symlink
+        shell: bash
+        run: |
+          user_objects_value="${{ steps.parse_make.outputs.user_objects_value }}"
+          
+          mkdir -p "$(dirname "$user_objects_value")"
+          
+          ln -sf /usr/lib/x86_64-linux-gnu/libprecice.so "$user_objects_value"
+          ldconfig
 
       - name: Compile the UDF
         working-directory: examples/Cavity2D/libudf/lnamd64/2ddp_host
