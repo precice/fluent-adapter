@@ -1,6 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include "preciceC.h"
+//check library for mocking in C
+/* should not test implemetation details */
+/* behvaviour test
+for exp a + b = c check if returned c or not not how it happens*/
 
 #include "fsi.h"
 
@@ -32,7 +36,8 @@ static void test_fsi_init_creates_participant()
   mock_createParticipant_call_count = 0;
 
   setup_global_domain_for_test();
-
+/*
+ */
 
   fsi_init(&global_domain);
 
