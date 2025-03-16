@@ -18,11 +18,8 @@ jobs:
       - name: Install system dependencies
         run: apt-get update && apt-get install -y build-essential
 
-      - name: Parse Makefile
-        id: parse_make
-        shell: bash
-        run: |
-          set PRECICE_PATH = /usr/lib/x86_64-linux-gnu/libprecice.so
+      - name: Set PRECICE_PATH environment variable
+        run: echo "PRECICE_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
 
       - name: Compile the UDF
         working-directory: examples/Cavity2D/libudf/lnamd64/2ddp_host
