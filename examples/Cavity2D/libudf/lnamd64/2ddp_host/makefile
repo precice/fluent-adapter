@@ -14,7 +14,8 @@
 include user.udf
 
 # Precompiled User Object files (for example .o files from .f sources)
-USER_OBJECTS=/usr/local/lib/libprecice.so
+USER_OBJECTS= $(if $(PRECICE_PATH),$(PRECICE_PATH)/libprecice.so,/usr/local/lib/libprecice.so)
+
 
 #----------------------------------------------------------------------#
 # Build targets (do not modify below this line).
