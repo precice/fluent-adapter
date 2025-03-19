@@ -112,12 +112,15 @@ Given the above 2D, double precicions, parallel run directory structure:
 - build libudf.so: type `make "FLUENT_ARCH=lnamd64"`
 - clean the build using `make clean`
 - copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
+
 ## 2. How to generate a makefile
+
 Given that you already have a license, generating a makefile is quite straight forward.
   - Open Fluent workbench and generate a 2D geometry, a mesh, setup your Fluent and run the simulation.
   - Save everything and exit the workbench.
   - Go to your project directory and then to `/trial_files/dp0/FLU/Fluent/libudf/lnamd64/2ddp_host`.
   - Copy your makefile and follow the steps from above to adjust is to your project
+
 ## Installing Ansys Fluent using Ansys GUI
 
 Ubuntu 20.04 is not officially supported by Ansys and hence only the Fluent package works on this distribution. All other packages (Ansys Workbench, etc.) do not work and hence the case setup needs to be done on a different compatible operating system. Current compatible distributions for Ansys version 2019 R3 are: Ubuntu 16.04, CentOS 7.x, Linux Mint 18.x, Debian 9 (tested with 2019 R3, unknown for 2020 R2). Generally it is recommended to only install the required packages, since the installation process might break (tested with 2019 R3). Make sure to test your installation by starting fluent (see below). If Fluent crashes, see the troubleshooting hints.
