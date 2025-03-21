@@ -18,6 +18,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
+          sudo apt-get install libcmocka-dev
 
       - name: Compile Tests
         run: |
@@ -35,17 +36,16 @@ jobs:
             -ITests/mocks \
             -lm
 
-            sudo apt-get install libcmocka-dev
-            
-            gcc -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable  \   
-            -o test_parameterPassing.out    \ 
-            Tests/Unit/parameterPassingTest.c  \   
-            2ddp_host/fsi.c   \  
-            $(pkg-config --cflags --libs cmocka)   \  
-            -I2ddp_host     \
-            -I2ddp_host/mocked_folders/fluent23.2.0/src  \   
-            -ITests/mocks/precice \    
-            -ITests/mocks \    
+          gcc -Wall -Wextra -Wno-unused-variable \
+            -Wno-unused-parameter -Wno-unused-but-set-variable \
+            -o test_parameterPassing.out \
+            Tests/Unit/parameterPassingTest.c \
+            2ddp_host/fsi.c \
+            $(pkg-config --cflags --libs cmocka) \
+            -I2ddp_host \
+            -I2ddp_host/mocked_folders/fluent23.2.0/src \
+            -ITests/mocks/precice \
+            -ITests/mocks \
             -lm
 
       - name: Run Tests
