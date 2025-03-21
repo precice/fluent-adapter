@@ -19,7 +19,7 @@
 #define RP_Set_Real(key, value)    do {} while(0)
 #define RP_Set_Integer(key, value) do {} while(0)
 #define RP_Variable_Exists_P(key)  (1)
-#define RP_Get_String(key)         "/mocked/config-location.xml"
+#define RP_Get_String(key)         "udf/config-location"
 #define RP_Get_Integer(key)        (long int)0
 
 #define CURRENT_TIMESTEP 0.01
