@@ -115,11 +115,15 @@ Given the above 2D, double precicions, parallel run directory structure:
 
 ## 2. How to generate a makefile
 
+Instructions for ANSYS 2025 R1
+
 Given that you already have a license, generating a makefile is quite straight forward.
-  - Open Fluent workbench and generate a 2D geometry, a mesh, setup your Fluent and run the simulation.
-  - Save everything and exit the workbench.
-  - Go to your project directory and then to `/trial_files/dp0/FLU/Fluent/libudf/lnamd64/2ddp_host`.
-  - Copy your makefile and follow the steps from above to adjust is to your project
+  - Open Fluent by running `fluent 2ddp`
+  - Open the tab "User-Defined" > "Functions" > "Compiled". This will open the window "Compiled UDFs".
+  - Add under "Source Files" the `.c` files `fluent-adapter/src/udf_fsi.c` and `fluent-adapter/src/fsi.c`. Note that the `libudf` folder (we will need this later) will be generated in the folder where these files are located, i.e., in `fluent-adapter/src/`.
+  - Add under "Header Files" the `.h` file `fluent-adapter/src/fsi.h`.
+  - Ensure that under "Library Name" you use the name `libudf`, then press "Build". This will create the folder `fluent-adapter/src/libudf`.
+  - You can find the `makefile` we need for compiling our UDFs under `fluent-adapter/src/libudf/lnamd64/2ddp_host/makefile`.
 
 ## Installing Ansys Fluent using Ansys GUI
 
