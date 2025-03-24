@@ -102,16 +102,17 @@ Given the above 2D, double precicions, parallel run directory structure:
 
 - Adapt `lnamd64/2ddp_host/user.udf`
   - change `CSOURCES=...` to include a space-separated list of `*.c` source files to be compiled; for the FSI case we're building this should be `fsi_udf.c` and `fsi.c`
-  - change `HSOURCES=...` to include a space-separated list of *.h source heeader files to be compiled; for the FSI case we're building this should be `fsi.h`
-  - change `FLUENT_INC=...` to point to the Fluent install directory. One location may be `/opt/Software/ansys/v202/fluent`. Locations should be of the type `./ansys_inc/v195/fluent`
+  - change `HSOURCES=...` to include a space-separated list of `*.h` source header files to be compiled; for the FSI case we're building this should be `fsi.h`
+  - change `FLUENT_INC=...` to point to the Fluent install directory. Use `which fluent` to determine the path of your `fluent` executable. Usually the executable is located at `$FLUENT_INC/bin/fluent`. Example: If `which fluent` returns `/some/path/ansys/v251/fluent/bin/fluent`, use `FLUENT_INT=/some/path/ansys/v251/fluent`
 - Adapt `lnamd64/2ddp_host/makefile`
-  - change `USER_OBJECTS` variable (line 20) to be a space separated list of the absolute path to libprecice.so and the python library shipped with Fluent
-  - the libprecice.so file can be found in the preCICE install location; for example, `install/precice/2.3.0/lib64/libprecice.so`
-  - the python library can be found in the Fluent installation files; for example, `/opt/Software/ansys/v202/commonfiles/CPython/3_7/linx64/Release/python/lib/libpython3.so`
-  - change `RELEASE` variable to be the Ansys release version; for example, `RELEASE=20.2.0`
-- build libudf.so: type `make "FLUENT_ARCH=lnamd64"`
-- clean the build using `make clean`
-- copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
+  - change `USER_OBJECTS` variable (line 20) to be a space separated list of the absolute path to `libprecice.so` and the Python library shipped with Fluent:
+      - You can use `pkg-config --libs-only-L libprecice` to determine the location of `libprecice.so`. If `pkg-config --libs-only-L libprecice` returns `-L/some/path/precice/lib` please use `/some/path/precice/lib/libprecice.so`.
+      - The Python library can be found in the Fluent installation files. Use `which fluent` to determine the path `/some/path/ansys/v251/fluent/bin/fluent`. The Python library is located at `/some/path/ansys/v251/commonfiles/CPython/3_10/linx64/Release/python/lib/libpython3.so` (you might have to replace `3_10` with a different number).
+  - change `RELEASE` variable to be the Ansys release version; for example, `RELEASE=25.1.0`
+- Open a terminal in the directory `fluent-adapter/lnamd64/2ddp_host`
+- To build `libudf.so` execute `make "FLUENT_ARCH=lnamd64"`
+- Clean the build using `make clean`
+- Copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
 
 ## 2. How to generate a makefile
 
@@ -120,7 +121,7 @@ Instructions for ANSYS 2025 R1
 Given that you already have a license, generating a makefile is quite straight forward.
   - Open Fluent by running `fluent 2ddp`
   - Open the tab "User-Defined" > "Functions" > "Compiled". This will open the window "Compiled UDFs".
-  - Add under "Source Files" the `.c` files `fluent-adapter/src/udf_fsi.c` and `fluent-adapter/src/fsi.c`. Note that the `libudf` folder (we will need this later) will be generated in the folder where these files are located, i.e., in `fluent-adapter/src/`.
+  - Add under "Source Files" the `.c` files `fluent-adapter/src/fsi_udf.c` and `fluent-adapter/src/fsi.c`. Note that the `libudf` folder (we will need this later) will be generated in the folder where these files are located, i.e., in `fluent-adapter/src/`.
   - Add under "Header Files" the `.h` file `fluent-adapter/src/fsi.h`.
   - Ensure that under "Library Name" you use the name `libudf`, then press "Build". This will create the folder `fluent-adapter/src/libudf`.
   - You can find the `makefile` we need for compiling our UDFs under `fluent-adapter/src/libudf/lnamd64/2ddp_host/makefile`.
