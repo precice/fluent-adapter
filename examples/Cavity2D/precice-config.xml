@@ -46,7 +46,7 @@
       <provide-mesh name="beam"/>
       <receive-mesh name="moving_base_faces" from="Fluent"/>
       <write-data name="Displacements" mesh="beam"/>
-      <read-data  name="Forces"     mesh="beam"/>
+      <read-data  name="Forces" mesh="beam"/>
     </participant>
 
     <m2n:sockets acceptor="Fluent" connector="CSMdummy" exchange-directory=".."/>
@@ -58,8 +58,8 @@
       <max-iterations value="100"/>
       <exchange data="Forces" mesh="beam" from="Fluent" to="CSMdummy"/>
       <exchange data="Displacements" mesh="beam" from="CSMdummy" to="Fluent" initialize="0"/>
-      <relative-convergence-measure limit="1e-4" data="Displacements" mesh="beam"/>
-      <relative-convergence-measure limit="1e-4" data="Forces" mesh="beam"/>
+      <relative-convergence-measure limit="1e-6" data="Displacements" mesh="beam"/>
+      <relative-convergence-measure limit="1e-6" data="Forces" mesh="beam"/>
     </coupling-scheme:serial-implicit>                           
 
 </precice-configuration>
