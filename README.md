@@ -105,6 +105,7 @@ Given the above 2D, double precicions, parallel run directory structure:
   - change `HSOURCES=...` to include a space-separated list of `*.h` source header files to be compiled; for the FSI case we're building this should be `fsi.h`
   - change `FLUENT_INC=...` to point to the Fluent install directory. Use `which fluent` to determine the path of your `fluent` executable. Usually the executable is located at `$FLUENT_INC/bin/fluent`. Example: If `which fluent` returns `/some/path/ansys/v251/fluent/bin/fluent`, use `FLUENT_INT=/some/path/ansys/v251/fluent`
 - Adapt `lnamd64/2ddp_host/makefile`
+  - In order to get the makefile please follow the instruction from [Ansys](https://ansyshelp.ansys.com/public/account/secured?returnurl=/Views/Secured/corp/v242/en/flu_udf/flu_udf_sec_precompiled_objects.html)
   - change `USER_OBJECTS` variable (line 20) to be a space separated list of the absolute path to `libprecice.so` and the Python library shipped with Fluent:
       - You can use `pkg-config --libs-only-L libprecice` to determine the location of `libprecice.so`. If `pkg-config --libs-only-L libprecice` returns `-L/some/path/precice/lib` please use `/some/path/precice/lib/libprecice.so`.
       - The Python library can be found in the Fluent installation files. Use `which fluent` to determine the path `/some/path/ansys/v251/fluent/bin/fluent`. The Python library is located at `/some/path/ansys/v251/commonfiles/CPython/3_10/linx64/Release/python/lib/libpython3.so` (you might have to replace `3_10` with a different number).

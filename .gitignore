@@ -26,3 +26,8 @@ lnamd64/2d_host/makelog
 */**/makelog
 */**/udf_names.c
 *.sh
+*/**/precice-profiling
+*/**/precice-run
+*/**/libudf
+*/**/*.out
+*/**/*.trn
