@@ -387,7 +387,7 @@ void set_mesh_positions(Domain* domain)
     /* allocate the coordinates arrays */
     initial_coords = (double*) malloc(wet_nodes_size * ND_ND * sizeof(double));
     face_coords = (double*) malloc(wet_face_size * ND_ND * sizeof(double));
- 
+
     /* Cycle through all of the unique nodes and save their initial coordinate;
      * nodes were marked with 1 in previous loop */
     begin_f_loop(face, face_thread){
@@ -412,7 +412,7 @@ void set_mesh_positions(Domain* domain)
 
     printf("  (%d) Setting %d initial node positions ...\n", myid, wet_nodes_size);
     printf("  (%d) Setting %d initial face positions ...\n", myid, wet_face_size);
- 
+
     /* Providing mesh information to preCICE */
     displ_indices = (int*) malloc(wet_nodes_size * sizeof(int));
     face_indices = (int*) malloc(wet_face_size * sizeof(int));
