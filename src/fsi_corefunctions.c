@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "SolverInterfaceC.h"
+#include "precice/preciceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
