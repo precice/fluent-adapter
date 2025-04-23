@@ -229,6 +229,8 @@ The initial version of this adapter was developed by Bernhard Gatzhammer as part
 
 Mike Tree contributed a [considerable update of the adapter](https://github.com/precice/fluent-adapter/pull/24).
 
+Khalil Hkiri [updated the adapter to preCICE v3](https://github.com/precice/fluent-adapter/pull/34).
+
 ## References
 
 [1] Gatzhammer, Bernhard. Efficient and Flexible Partitioned Simulation of Fluid-Structure Interactions. PhD Thesis, Department of Informatics, Technical University of Munich, 2014.
