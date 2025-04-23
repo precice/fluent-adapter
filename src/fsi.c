@@ -169,8 +169,8 @@ void fsi_write_and_advance()
     printf("\n(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
     double timestep_limit = 0.0;
     if (wet_face_size > 0){
-          write_forces();
-      }
+        write_forces();
+    }
     timestep_limit = precicec_getMaxTimeStepSize();
     /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
     solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
