@@ -98,7 +98,13 @@ Please note that the `_node` directory and `_host` directory are copies of one a
 
 ## 1. How to build the Fluent-preCICE adapter
 
-Given the above 2D, double precicions, parallel run directory structure:
+It is recommended to follow the instructions from [the Fluent documentation](https://ansyshelp.ansys.com/public/account/secured?returnurl=/Views/Secured/corp/v242/en/flu_udf/flu_udf_sec_compile_tui.html) to build a UDF with or without the GUI.
+
+Alternatively, you may use the following instructions (for ANSYS 2025 R1).
+
+### Instructions for 2D, double precision, parallel run
+
+Directory structure:
 
 - Adapt `lnamd64/2ddp_host/user.udf`
   - change `CSOURCES=...` to include a space-separated list of `*.c` source files to be compiled; for the FSI case we're building this should be `fsi_udf.c` and `fsi.c`
@@ -115,7 +121,7 @@ Given the above 2D, double precicions, parallel run directory structure:
 - Clean the build using `make clean`
 - Copy ALL of the contents of `lnamd64/2ddp_host/` to `lnamd64/2ddp_node/`
 
-## 2. How to generate a makefile
+### How to generate the required `makefile`
 
 Instructions for ANSYS 2025 R1
 
