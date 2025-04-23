@@ -367,8 +367,8 @@ void set_mesh_positions(Domain* domain)
         fflush(stdout);
         exit(1);
     }
-    * Count the total number of unique nodes on the face_thread; nodes were
-    * marked in count_dynamic_threads() */
+    /* Count the total number of unique nodes on the face_thread; nodes were
+     * marked in count_dynamic_threads() */
     begin_f_loop(face, face_thread){
         if (PRINCIPAL_FACE_P(face, face_thread)) {
             wet_face_size++;
@@ -389,8 +389,7 @@ void set_mesh_positions(Domain* domain)
     face_coords = (double*) malloc(wet_face_size * ND_ND * sizeof(double));
  
     /* Cycle through all of the unique nodes and save their initial coordinate;
-     * nodes were marked with 1 in previous loop 
-     */
+     * nodes were marked with 1 in previous loop */
     begin_f_loop(face, face_thread){
         if (PRINCIPAL_FACE_P(face,face_thread)){
             F_CENTROID(pos, face, face_thread);
