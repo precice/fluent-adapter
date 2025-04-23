@@ -1,5 +1,5 @@
 #include "fsi.h"
-#include "SolverInterfaceC.h"
+#include "precice/preciceC.h"
 #include <float.h>
 #include <math.h>
 #include <string.h>
@@ -44,7 +44,7 @@ void set_mesh_positions(Domain* domain);
 
 /* This function creates the solver interface named "Fluent" and initializes
  * the interface
- * fsi_init is directly called by FLUENT UDF Functionality
+ * fsi_init is directly called by Fluent UDF Functionality
  * */
 void fsi_init(Domain* domain)
 {
@@ -71,7 +71,7 @@ void fsi_init(Domain* domain)
     /* temporarily hard coding Solver name */
     if (RP_Variable_Exists_P("udf/config-location")){
         const char *config_loc = RP_Get_String("udf/config-location");
-        precicec_createSolverInterface("Fluent", config_loc, solver_process_id,
+        precicec_createParticipant("Fluent", config_loc, solver_process_id,
                 solver_process_size);
     }
     else {
@@ -89,14 +89,32 @@ void fsi_init(Domain* domain)
         dynamic_thread_node_size[i] = 0;
         dynamic_thread_face_size[i] = 0;
     }
+
+    /* Define mesh and data names */
+    char* nodeMeshName = "moving_base_nodes";
+    char* faceMeshName = "moving_base_faces";
+    char* displDataName = "Displacements";
+    char* forceDataName = "Forces";
     
     /* Set coupling mesh positions (faces and nodes)*/
     set_mesh_positions(domain);
-
+    int vertexSize = wet_face_size;
+    const int forceDim = precicec_getDataDimensions(faceMeshName, forceDataName);
+    double* forces = malloc(vertexSize*forceDim);
+    int* vertexIDs = malloc(sizeof(int) * vertexSize);
     printf("  (%d) Initializing coupled simulation\n", myid);
-    timestep_limit = precicec_initialize();
+
+    
+    if (precicec_requiresInitialData()) {
+        precicec_writeData(nodeMeshName, displDataName, vertexSize, vertexIDs, forces);
+        precicec_writeData(faceMeshName, forceDataName, vertexSize, vertexIDs, forces);
+    }
+    
+    precicec_initialize();
+
     /* Set the solver time step to be the minimum of the precice time step an the
      * current time step */
+    timestep_limit = precicec_getMaxTimeStepSize();
     solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
     printf("  (%d) Initialization done\n", myid);
     #endif /* !RP_HOST */
@@ -113,15 +131,15 @@ void fsi_init(Domain* domain)
     #endif /* !RP_NODE */
 
     #if !RP_HOST
-    if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
+    if (precicec_requiresWritingCheckpoint()){
         printf("  (%d) Implicit coupling\n", myid);
         udf_convergence = 0;
         udf_iterate = 1;
-        precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
     }
     else {
         printf("  (%d) Explicit coupling\n", myid);
     }
+
     printf("  (%d) Synchronizing Fluent processes\n", myid);
     PRF_GSYNC();
 
@@ -138,7 +156,7 @@ void fsi_init(Domain* domain)
 
 /* Main function advances the interface time step and provides the mechanism
  * for proper coupling scheme to be applied
- * fsi_write_and_advance is directly called by FLUENT UDF functionality
+ * fsi_write_and_advance is directly called by Fluent UDF functionality
  * */
 void fsi_write_and_advance()
 {
@@ -149,35 +167,27 @@ void fsi_write_and_advance()
     /* Only the host process (Rank 0) handles the writing of data and advancing coupling */
     #if !RP_HOST
     printf("\n(%d) Entering ON_DEMAND(write_and_advance)\n", myid);
-    int subcycling = !precicec_isWriteDataRequired(CURRENT_TIMESTEP);
     double timestep_limit = 0.0;
-
-    if (subcycling){
-        Message("  (%d) In subcycle, skip writing\n", myid);
+    if (wet_face_size > 0){
+        write_forces();
     }
-    else {
-        if (wet_face_size > 0){
-          write_forces();
-      }
-    }
-
-    timestep_limit = precicec_advance(CURRENT_TIMESTEP);
+    timestep_limit = precicec_getMaxTimeStepSize();
     /* Send min of timestep_limit and CURRENT_TIMESTEP to TUI */
     solve_dt = fmin(timestep_limit, CURRENT_TIMESTEP);
-    /* Read coupling state */
+    precicec_advance(solve_dt);
+
     ongoing = precicec_isCouplingOngoing();
     
-    if (precicec_isActionRequired(precicec_actionWriteIterationCheckpoint())){
+    if (precicec_requiresWritingCheckpoint()){
         udf_convergence = 1;
-      precicec_markActionFulfilled(precicec_actionWriteIterationCheckpoint());
     }
-    if (precicec_isActionRequired(precicec_actionReadIterationCheckpoint())){
+    if (precicec_requiresReadingCheckpoint()){
         udf_convergence = 0;
-      precicec_markActionFulfilled(precicec_actionReadIterationCheckpoint());
     }
-    if (! precicec_isCouplingOngoing()){
+    if (!precicec_isCouplingOngoing()){
         udf_convergence = 1;
     }
+    
     printf("(%d) Leaving ON_DEMAND(write_and_advance)\n", myid);
     #endif /* !RP_HOST */  
     
@@ -195,10 +205,10 @@ void fsi_write_and_advance()
     #endif /* !RP_NODE */
 }
 
-/* Function to be attached to the Dynamic Mesh in FLUENT in the form of a UDF.
+/* Function to be attached to the Dynamic Mesh in Fluent in the form of a UDF.
  * This function will read the displacements values from interface and move the
  * structural mesh accordingly
- * fsi_grid_motion is directly related to mesh motion in FLUENT UDF Functionality
+ * fsi_grid_motion is directly related to mesh motion in Fluent UDF Functionality
  * */
 void fsi_grid_motion(Domain* domain, Dynamic_Thread* dt, real time, real dtime)
 {
@@ -342,8 +352,8 @@ void set_mesh_positions(Domain* domain)
     face_t face;
     double pos[ND_ND];
     int n = 0, dim = 0, array_index = 0, face_index = 0;
-    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
-    int faceMeshID = precicec_getMeshID("moving_base_faces");
+    const char* nodeMeshID = "moving_base_nodes";
+    const char* faceMeshID = "moving_base_faces";
 
     if (domain->dynamic_threads == NULL){
         Message("  (%d) ERROR: domain.dynamic_threads == NULL\n", myid);
@@ -420,14 +430,12 @@ void set_mesh_positions(Domain* domain)
 }
 
 /* This functions reads the new displacements provided by the structural
- * solver and moves the mesh coordinates in FLUENT with the corresponding
+ * solver and moves the mesh coordinates in Fluent with the corresponding
  * values
  * */
 void read_displacements(Dynamic_Thread* dt)
 {
     double* displacements = NULL;
-    int nodeMeshID = precicec_getMeshID("moving_base_nodes");
-    int displID = precicec_getDataID("Displacements", nodeMeshID);
     int offset = 0;
     int i = 0, n = 0, dim = 0;
     Thread* face_thread  = DT_THREAD(dt);
@@ -443,9 +451,9 @@ void read_displacements(Dynamic_Thread* dt)
             offset += dynamic_thread_node_size[i];
         }
         printf("  data size for readBlockVectorData = %d\n", dynamic_thread_node_size[thread_index]);
-        //precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index],
-        //        displ_indices + offset, displacements + ND_ND * offset);
-        precicec_readBlockVectorData(displID, dynamic_thread_node_size[thread_index], displ_indices, displacements);
+
+        double relativeReadTime = precicec_getMaxTimeStepSize();
+        precicec_readData("moving_base_nodes","Displacements", dynamic_thread_node_size[thread_index], displ_indices,relativeReadTime, displacements);
         
         printf("After readBlockVectorData\n");
         Message("  (%d) Setting displacements...\n", myid);
@@ -473,14 +481,12 @@ void read_displacements(Dynamic_Thread* dt)
     Message("  (%d) Max displacement delta: %f\n", myid, max_displ_delta);
 }
 
-/* This function writes the new forces on the structure calculated in FLUENT to the
+/* This function writes the new forces on the structure calculated in Fluent to the
  * Structural solver
  */
 void write_forces()
 {
     double* forces = NULL;
-    int faceMeshID = precicec_getMeshID("moving_base_faces");
-    int forceID = precicec_getDataID("Forces", faceMeshID);
     int i=0, j=0;
     Domain* domain = NULL;
     Dynamic_Thread* dynamic_thread = NULL;
@@ -525,8 +531,6 @@ void write_forces()
              if (PRINCIPAL_FACE_P(face, face_thread)){
                  F_AREA(area, face, face_thread);
                  NV_VS(viscous_force, =, F_STORAGE_R_N3V(face,face_thread,SV_WALL_SHEAR),*,-1.0);
-                 /* F_P is NOT available in the density-based solver in Fluent; MUST
-                  * use the pressure-based solver */
                  NV_VS(pressure_force, =, area, *, F_P(face,face_thread));
                  NV_VV(total_force, =, viscous_force, +, pressure_force);
                  for (j=0; j < ND_ND; j++){
@@ -553,7 +557,7 @@ void write_forces()
     }
     printf("  (%d) ...done (with %d force values)\n", myid, i);
     printf("  (%d) Writing forces...\n", myid);
-    precicec_writeBlockVectorData(forceID, wet_face_size, face_indices, forces);
+    precicec_writeData("moving_base_faces","Forces", wet_face_size, face_indices, forces);
     printf("  (%d) ...done\n", myid );
     printf("  (%d) Max force: %f\n", myid, max_force);
     if (thread_counter != dynamic_thread_size){
