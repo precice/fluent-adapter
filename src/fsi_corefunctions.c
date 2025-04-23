@@ -16,7 +16,7 @@
 #define BOOL_TRUE  1
 #define BOOL_FALSE 0
 
-/* Functions with interface only with FLUENT */
+/* Functions with interface only with Fluent */
 
 /* Helper function to plot FSI coordinates (not related to preCICE
  * functionality) */
