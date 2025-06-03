@@ -1,0 +1,33 @@
+name: Compile UDF
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-udf:
+    runs-on: ubuntu-latest
+    container: precice/precice:nightly
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y build-essential
+
+      - name: Set PRECICE_PATH environment variable
+        run: echo "PRECICE_PATH=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+
+      - name: Copy needed files
+        run: |
+          mkdir examples/Cavity2D/libudf examples/Cavity2D/libudf/lnamd64 examples/Cavity2D/libudf/lnamd64/2ddp_host
+          cp tests examples/Cavity2D/libudf/lnamd64
+          mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+          cp tests/mocks examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+
+      - name: Compile the UDF
+        working-directory: examples/Cavity2D/libudf/lnamd64/2ddp_host
+        run: make
