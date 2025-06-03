@@ -1,0 +1,75 @@
+name: Test Fluent Adapter
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test-fluent-adapter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+          sudo apt-get install libcmocka-dev
+
+      - name: Copy needed files
+        run: mkdir examples/Cavity2D/libudf
+             mkdir examples/Cavity2D/libudf/lnamd64
+             mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host
+             cp tests examples/Cavity2D/libudf/lnamd64
+             mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+             cp tests/mocks examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+
+
+
+      - name: Compile Tests
+        run: |
+          cd examples/Cavity2D/libudf/lnamd64
+          gcc -Wall -Wextra -Wno-unused-variable \
+            -Wno-unused-parameter -Wno-unused-but-set-variable \
+            -o test_fsi.out \
+            Tests/Unit/tests.c \
+            Tests/mocks/precice/preciceC.c \
+            2ddp_host/fsi.c \
+            Tests/mock_fluent.c \
+            -I2ddp_host \
+            -I2ddp_host/mocked_folders/fluent23.2.0/src \
+            -ITests/mocks/precice \
+            -ITests/mocks \
+            -lm
+
+          gcc -Wall -Wextra -Wno-unused-variable \
+            -Wno-unused-parameter -Wno-unused-but-set-variable \
+            -o test_parameterPassing.out \
+            Tests/Unit/parameterPassingTest.c \
+            2ddp_host/fsi.c \
+            $(pkg-config --cflags --libs cmocka) \
+            -I2ddp_host \
+            -I2ddp_host/mocked_folders/fluent23.2.0/src \
+            -ITests/mocks/precice \
+            -ITests/mocks \
+            -lm
+
+      - name: Run Tests
+        run: |
+          cd examples/Cavity2D/libudf/lnamd64
+          ./test_fsi.out
+          ./test_parameterPassing.out 
+        
+      - name: Cleanup and Cache clear
+        run: |
+          REPO=${{ github.repository }}
+          echo "Deleting caches..."
+          rm -rf examples/Cavity2D/libudf
+          gh actions-cache delete -R $REPO --confirm
+          echo "Done"
+
+
