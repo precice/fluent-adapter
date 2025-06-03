@@ -1,5 +1,5 @@
-#ifndef MOCK_PRECICEC_H
-#define MOCK_PRECICEC_H
+#ifndef PRECICEC_H
+#define PRECICEC_H
 
 extern int mock_createParticipant_call_count;
 extern int mock_initialize_call_count;
@@ -36,5 +36,7 @@ void precicec_readData(const char* meshName,
                        double* outData);
 void precicec_setMeshVertices(const char *meshName, int size, const double *coordinates, int *ids);
 int precicec_getDataDimensions(const char *meshName, const char *dataName);
+int precicec_requiresReadingCheckpoint();
+int precicec_requiresWritingCheckpoint();
 
-#endif /* MOCK_PRECICEC_H */
+#endif /* PRECICEC_H */

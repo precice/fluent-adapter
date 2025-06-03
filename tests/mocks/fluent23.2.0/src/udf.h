@@ -21,6 +21,10 @@
 #define RP_Variable_Exists_P(key)  (1)
 #define RP_Get_String(key)         "udf/config-location"
 #define RP_Get_Integer(key)        (long int)0
+#define DEFINE_INIT(name, domain) void name(void *domain)
+#define DEFINE_ON_DEMAND(name) void name(void)
+#define DEFINE_GRID_MOTION(name, domain, dt, time, dtime) \
+  void name(Domain *domain, Dynamic_Thread* dt, real time, real dtime)
 
 #define CURRENT_TIMESTEP 0.01
 

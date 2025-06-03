@@ -3,7 +3,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include "fsi.h"
-#include "preciceC.h"
 
 #undef node_to_host_double_1
 #undef node_to_host_int_2
@@ -111,6 +110,15 @@ Domain* Get_Domain(int dummy) {
     (void)dummy;
     return &test_domain;
 }
+
+int precicec_requiresWritingCheckpoint(void) {
+    return 1; 
+}
+
+int precicec_requiresReadingCheckpoint(void) {
+    return 1;
+}
+
 static void test_fsi_init_parameters(void **state)
 {
     (void)state;

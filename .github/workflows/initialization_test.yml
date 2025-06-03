@@ -21,18 +21,23 @@ jobs:
           sudo apt-get install libcmocka-dev
 
       - name: Copy needed files
-        run: mkdir examples/Cavity2D/libudf
-             mkdir examples/Cavity2D/libudf/lnamd64
-             mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host
-             cp tests examples/Cavity2D/libudf/lnamd64
-             mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
-             cp tests/mocks examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+        run: |
+          set -e
+          mkdir examples/Cavity2D/libudf examples/Cavity2D/libudf/lnamd64 examples/Cavity2D/libudf/lnamd64/2ddp_host examples/Cavity2D/libudf/lnamd64/Tests
+          cp -r tests/makefile examples/Cavity2D/libudf/lnamd64/2ddp_host
+          cp src/fsi.c src/fsi.h src/fsi_udf.c src/user.udf examples/Cavity2D/libudf/lnamd64/2ddp_host
+          mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+          cp -r tests/mocks/* examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+          cp -r tests/* examples/Cavity2D/libudf/lnamd64/Tests 
+          ls examples/Cavity2D/libudf/lnamd64/Tests/mocks
 
 
 
       - name: Compile Tests
         run: |
           cd examples/Cavity2D/libudf/lnamd64
+          find . -name '*.o' -delete
+          find . -name '*.out' -delete
           gcc -Wall -Wextra -Wno-unused-variable \
             -Wno-unused-parameter -Wno-unused-but-set-variable \
             -o test_fsi.out \
@@ -58,6 +63,7 @@ jobs:
             -ITests/mocks \
             -lm
 
+
       - name: Run Tests
         run: |
           cd examples/Cavity2D/libudf/lnamd64
@@ -69,7 +75,6 @@ jobs:
           REPO=${{ github.repository }}
           echo "Deleting caches..."
           rm -rf examples/Cavity2D/libudf
-          gh actions-cache delete -R $REPO --confirm
           echo "Done"
 
 

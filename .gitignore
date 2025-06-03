@@ -31,3 +31,4 @@ lnamd64/2d_host/makelog
 */**/libudf
 */**/*.out
 */**/*.trn
+!tests/makefile

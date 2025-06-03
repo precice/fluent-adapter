@@ -23,10 +23,13 @@ jobs:
 
       - name: Copy needed files
         run: |
+          rm -rf examples/Cavity2D/libudf
+          set -e
           mkdir examples/Cavity2D/libudf examples/Cavity2D/libudf/lnamd64 examples/Cavity2D/libudf/lnamd64/2ddp_host
-          cp tests examples/Cavity2D/libudf/lnamd64
+          cp -r tests/makefile examples/Cavity2D/libudf/lnamd64/2ddp_host
+          cp src/fsi.c src/fsi.h src/fsi_udf.c src/user.udf examples/Cavity2D/libudf/lnamd64/2ddp_host
           mkdir examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
-          cp tests/mocks examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
+          cp -r tests/mocks/* examples/Cavity2D/libudf/lnamd64/2ddp_host/mocked_folders
 
       - name: Compile the UDF
         working-directory: examples/Cavity2D/libudf/lnamd64/2ddp_host

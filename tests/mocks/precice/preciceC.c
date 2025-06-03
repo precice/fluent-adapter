@@ -89,3 +89,17 @@ int precicec_getDataDimensions(const char* meshName, const char* dataName)
            meshName, dataName);
     return 2;
 }
+
+int precicec_requiresReadingCheckpoint(void) {
+    printf("[Mock preCICE] precicec_requiresReadingCheckpoint called\n");
+    return 1;
+}
+int precicec_requiresWritingCheckpoint(void) {
+    printf("[Mock preCICE] precicec_requiresWritingCheckpoint called\n");
+
+    return 1;
+}
+void __check_symbols(void) {
+    (void)precicec_requiresReadingCheckpoint;
+    (void)precicec_requiresWritingCheckpoint;
+}
