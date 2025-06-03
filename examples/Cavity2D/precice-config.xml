@@ -47,6 +47,7 @@
       <receive-mesh name="moving_base_faces" from="Fluent"/>
       <write-data name="Displacements" mesh="beam"/>
       <read-data  name="Forces" mesh="beam"/>
+      <watch-point mesh="beam" name="MyWatchPoint" coordinate="0.5; 0"/>
     </participant>
 
     <m2n:sockets acceptor="Fluent" connector="CSMdummy" exchange-directory=".."/>
